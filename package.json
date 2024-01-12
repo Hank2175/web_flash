@@ -1,0 +1,22 @@
+{
+  "name": "hank/web_flash_system",
+  "version": "0.0.1",
+  "description": "WebFlash",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "webflash"
+  ],
+  "author": "Hank",
+  "license": "ISC",
+  "dependencies": {
+    "@yume-chan/adb": "0.0.22",
+    "@yume-chan/adb-daemon-webusb": "0.0.22",
+    "@yume-chan/stream-extra": "0.0.22",
+    "android-fastboot": "^1.1.3",
+    "webadb": "^1.0.1"
+  },
+  "type": "module"
+}
