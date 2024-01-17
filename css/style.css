@@ -203,6 +203,8 @@ div.index {
   left: 16.66666667%;
   top: 0;
   display: block;
+  height: calc(100% - 60px);
+  overflow-y: auto;
 }
 
 div.table_of_contents {
@@ -291,6 +293,7 @@ div.table_of_contents_item a,
 div.content_section_text a {
   text-decoration: none;
   font-weight: bold;
+  padding: 40px 30px;
 }
 
 div.table_of_contents_item a:link,
@@ -343,8 +346,61 @@ div.content_section_text a:visited,
 
 .btn-resize1:before{
   opacity: 0;
+  top: 120px;
 }
 
 .btn-resize1:hover:before {
   opacity: 1;
+  top: 20px;
+}
+
+#Flash_IMG_index{
+  display: inline-block;
+}
+
+#Flash_IMG_index .files{
+  display: inline-block;
+  position: relative;
+  height: 180px;
+  width: 120px;
+  margin: 3px;
+  background-position-x: center;
+  background-position-y: 15px;
+  background-size: 90%;
+  background-repeat: no-repeat;
+  border-radius: 10px;
+  transition: all 0.5s;
+}
+
+#Flash_IMG_index .file{
+  background-image: url("../img/file.png");
+}
+
+#Flash_IMG_index .folder{
+  background-image: url("../img/folder.png");
+}
+
+#Flash_IMG_index .folder_zip{
+  background-image: url("../img/folder_zip.png");
+}
+
+#Flash_IMG_index .files .filelink{
+  position: absolute;
+  height: 100%;
+  padding: 120px 3px 0 3px;
+  width: 100%;
+  text-align: center;
+  color: rgba(0, 0, 0, 0.7);
+  z-index: 10;
+  word-wrap: break-word;
+  font-size: 12px;
+}
+
+#Flash_IMG_index .files .filelink:not([href]){
+  color: rgba(0, 0, 0, 0.7);
+  background-color: transparent;
+}
+
+#Flash_IMG_index .files:hover{
+  background-color: rgba(0, 0, 0, 0.2);
 }

@@ -83,22 +83,23 @@ async function connect(ADB_mode){
     adb = await webusb.connectAdb("host::", () => {
       //console.log(webusb.device.productName);
     });
-    console.log(webusb.device);
-    let shell = await adb.shell("getprop ro.product.name");
-    let get = await shell.receive();
-    Uint8toStr(get.data);
-    document.querySelector("#connect").style = "height: 15%; width: 46%; top: unset; bottom: 2%; left:3%; transform: translate(0%, 0%); visibility: hidden;";
-    const open = document.querySelectorAll(".disabled");
-    open.forEach((x) => {
-      console.log(x);
-      x.className="notdisabled";
-      //x.classList.remove("disabled");
-    });
-    document.querySelector("#readmeLink").addEventListener("click", function(){ buttonLink("readmeLink","readme");});
-    document.querySelector("#DEVLink").addEventListener("click", function(){ buttonLink("DEVLink", "DEVinfo"); getDEVinfo();});
-    document.querySelector("#SCRLink").addEventListener("click", function(){ buttonLink("SCRLink", "SCRcap"); screenShot();});
-    document.querySelector("#SCRshot").addEventListener("click", function(){ screenShot();});
-    //SCRshot
+    if(adb.transport.device.opened == true) {
+      let shell = await adb.shell("getprop ro.product.name");
+      let get = await shell.receive();
+      Uint8toStr(get.data);
+      document.querySelector("#connect").style = "height: 15%; width: 46%; top: unset; bottom: 2%; left:3%; transform: translate(0%, 0%); visibility: hidden;";
+      const open = document.querySelectorAll(".disabled");
+      open.forEach((x) => {
+        // console.log(x);
+        x.className="notdisabled";
+      });
+      document.querySelector("#readmeLink").addEventListener("click", function(){ buttonLink("readmeLink","readme");});
+      document.querySelector("#DEVLink").addEventListener("click", function(){ buttonLink("DEVLink", "DEVinfo"); getDEVinfo();});
+      document.querySelector("#SCRLink").addEventListener("click", function(){ buttonLink("SCRLink", "SCRcap"); screenShot();});
+      document.querySelector("#SCRshot").addEventListener("click", function(){ screenShot();});
+      document.querySelector("#Flash").addEventListener("click", function(){ buttonLink("Flash", "Flash_IMG"); Flash_IMG(".");});
+      //SCRshot
+    } 
   }
 }
 
@@ -120,8 +121,12 @@ var webusb;
 window.onload = _ => {
   document.querySelector("#connect").style = "visibility: hidden";
   document.querySelector("#pair").onclick = async function() {
+    if(webusb != null){
+      await webusb.close();
+      window.location.reload();
+    }
     webusb = await Adb.open("WebUSB");
-    console.log(webusb.device.serialNumber);
+    console.log(webusb.device);
     if(webusb.isAdb()){
       ADB_mode = true;
       adb = await webusb.connectAdb("host::", () => {
@@ -136,7 +141,7 @@ window.onload = _ => {
       await device._validateAndConnectDevice();
       ADB_mode = false;
       showDevice(webusb.device.serialNumber, "Android", false);
-      webusb.close();
+      await webusb.close();
     }
     
     document.querySelector("#mask").style = "visibility: hidden";
@@ -213,4 +218,79 @@ async function screenShot(){
   //a.click();
   // document.getElementById("screen_image").appendChild(a);
   document.querySelector("#screen_image").src = a.href;
+}
+
+async function Flash_IMG(perm){
+  let fileSource;
+  console.log(perm);
+  const forData = new FormData();
+  forData.append("action", perm);
+  fetch("../php/data.php", {
+    method: 'POST',
+    body: forData,
+  })
+  .then(response => {
+    response.json().then((result) => {
+      fileSource = Object.values(result);
+      //console.log(fileSource);
+      fileBTN(fileSource, perm);
+    });
+  }).catch(response => {
+    console.error(response);
+  });
+}
+
+var dirDepth = 0;
+
+function fileBTN(fileSource, perm){
+  let insert = document.getElementById("Flash_IMG_index");
+  while(insert.firstChild){
+    insert.removeChild(insert.lastChild);
+  }
+  if(dirDepth == 0){
+    perm = ".";
+  } else {
+    let a = document.createElement("a");
+    a.classList.add("filelink");
+    a.textContent="上一頁";
+    let div = document.createElement("div");
+    div.classList.add("files", "folder");
+    div.appendChild(a);
+    div.addEventListener("click", function(){ dirDepth -= 1; Flash_IMG(perm + "/..");});
+    insert.appendChild(div);
+  }
+  fileSource = fileSource.sort((a, b) => {
+    if(a.name < b.name){
+      return -1;
+    }
+  });
+  let keys = Object.keys(fileSource);
+  keys.forEach(key => {
+    console.log(fileSource[key]);
+    // console.log(fileSource[key].name);
+    // console.log(fileSource[key].type);
+    // console.log(fileSource[key].perm);
+    if(fileSource[key].type == "file"){
+      let a = document.createElement("a");
+      a.classList.add("filelink");
+      a.textContent = fileSource[key].name;
+      let div = document.createElement("div");
+      if(a.textContent.indexOf('zip') > -1) {
+        div.classList.add("files", "folder_zip");
+      } else {
+        div.classList.add("files", "file");
+      }
+      div.appendChild(a);
+      insert.appendChild(div);
+    } else if(fileSource[key].type == "dir"){
+      let a = document.createElement("a");
+      a.classList.add("filelink");
+      a.textContent=fileSource[key].name;
+      let div = document.createElement("div");
+      div.classList.add("files", "folder");
+      div.appendChild(a);
+      div.addEventListener("click", function(){ dirDepth += 1; Flash_IMG(perm + "/" + fileSource[key].name);});
+      insert.appendChild(div);
+    } 
+  });
 }
