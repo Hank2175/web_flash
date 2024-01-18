@@ -404,3 +404,70 @@ div.content_section_text a:visited,
 #Flash_IMG_index .files:hover{
   background-color: rgba(0, 0, 0, 0.2);
 }
+
+#DIR_LINK a {
+  padding: 0;
+}
+
+#DIR_LINK a:hover {
+  text-decoration: underline;
+  color: red;
+}
+
+#download_page {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 10;
+  height: 100%;
+  width: 100%;
+  background-color: #707070;
+}
+
+#download_page .download_page_index{
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 60%;
+  height: 50%;
+  background-color: #D8DBE2;
+  border-radius: 10px;
+  background-position-x: center;
+  background-position-y: 15px;
+  background-size: 200px;
+  background-repeat: no-repeat;
+}
+
+#download_page .file{
+  background-image: url(../img/file.png);
+}
+
+#download_page .folder_zip {
+  background-image: url(../img/folder_zip.png);
+}
+
+#download_page .download_page_index p{
+  position: absolute;
+  top: 60%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+#download_page .download_page_index .btn_group {
+  bottom: 20px;
+  left: 50%;
+  width: 50%;
+  transform: translate(-50%, 0);
+  top: unset;
+}
+
+.btn-resize2 {
+  height: 80px;
+  width: 40%;
+  left: 30%;
+  position: relative;
+  margin-right: 15px;
+  background-color: #707070;
+}

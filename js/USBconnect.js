@@ -222,7 +222,6 @@ async function screenShot(){
 
 async function Flash_IMG(perm){
   let fileSource;
-  console.log(perm);
   const forData = new FormData();
   forData.append("action", perm);
   fetch("../php/data.php", {
@@ -232,7 +231,6 @@ async function Flash_IMG(perm){
   .then(response => {
     response.json().then((result) => {
       fileSource = Object.values(result);
-      //console.log(fileSource);
       fileBTN(fileSource, perm);
     });
   }).catch(response => {
@@ -240,15 +238,54 @@ async function Flash_IMG(perm){
   });
 }
 
-var dirDepth = 0;
+function Stack(){
+  let items = [];
+  this.push = (element =>{
+    items.push(element);
+  });
+  this.pop = () => {
+    items.pop();
+  };
+  this.peek = () => {
+    return items[items.length - 1];
+  };
+  this.empty = () => {
+    return items.length === 0;
+  };
+  this.size = () => {
+    return items.length;
+  };
+  this.clear = () => {
+    items = [];
+  };
+}
+
+var dirP = new Stack();
+var timeID;
 
 function fileBTN(fileSource, perm){
+  // console.log(perm);
+  // console.log(dirP.peek());
+  // console.log(dirP.size());
   let insert = document.getElementById("Flash_IMG_index");
+  let dir_link = document.getElementById("DIR_LINK");
   while(insert.firstChild){
     insert.removeChild(insert.lastChild);
   }
-  if(dirDepth == 0){
-    perm = ".";
+  if(dirP.size() == 0){
+    if(perm.indexOf('..') <= -1){
+      let a1 = document.createElement("a");
+      a1.textContent = "/home";
+      a1.addEventListener("click", function(){ 
+        while(dir_link.lastChild){
+          dir_link.removeChild(dir_link.lastChild);
+        }
+        perm = ".";
+        dirP.clear();
+        Flash_IMG(perm);
+      });
+      dir_link.appendChild(a1);
+    }
   } else {
     let a = document.createElement("a");
     a.classList.add("filelink");
@@ -256,7 +293,29 @@ function fileBTN(fileSource, perm){
     let div = document.createElement("div");
     div.classList.add("files", "folder");
     div.appendChild(a);
-    div.addEventListener("click", function(){ dirDepth -= 1; Flash_IMG(perm + "/..");});
+    let a1 = document.createElement("a");
+    a1.textContent = "/" + dirP.peek();
+    a1.addEventListener("click", function(){ 
+      // console.log(perm);
+      while(a1.textContent != dir_link.lastChild.textContent){
+        dir_link.removeChild(dir_link.lastChild);
+        perm = perm.replace("/" + dirP.peek(), "");
+        dirP.pop();
+      }
+      dir_link.removeChild(dir_link.lastChild);
+      Flash_IMG(perm);
+    });
+    dir_link.appendChild(a1);
+    div.addEventListener("click", function(){
+      dir_link.removeChild(dir_link.lastChild);
+      dir_link.removeChild(dir_link.lastChild);
+      console.log(perm);
+      console.log(dirP.peek());
+      perm = perm.replace("/" + dirP.peek(), "");
+      console.log(perm);
+      dirP.pop();
+      Flash_IMG(perm);
+    });
     insert.appendChild(div);
   }
   fileSource = fileSource.sort((a, b) => {
@@ -266,7 +325,7 @@ function fileBTN(fileSource, perm){
   });
   let keys = Object.keys(fileSource);
   keys.forEach(key => {
-    console.log(fileSource[key]);
+    // console.log(fileSource[key]);
     // console.log(fileSource[key].name);
     // console.log(fileSource[key].type);
     // console.log(fileSource[key].perm);
@@ -281,16 +340,60 @@ function fileBTN(fileSource, perm){
         div.classList.add("files", "file");
       }
       div.appendChild(a);
+      div.addEventListener("click", function(){
+        //console.log([fileSource[key].name, fileSource[key].size]);
+        downloadFTP(perm + "/" + a.textContent);
+        //console.log(window.location.href + "image-buffer/");
+        timeID = setInterval(() => {
+          getfileStats(window.location.href + "image_buffer/" + fileSource[key].name, fileSource[key].size);
+        }, 2000);
+      });
       insert.appendChild(div);
     } else if(fileSource[key].type == "dir"){
       let a = document.createElement("a");
       a.classList.add("filelink");
-      a.textContent=fileSource[key].name;
+      a.textContent = fileSource[key].name;
       let div = document.createElement("div");
       div.classList.add("files", "folder");
       div.appendChild(a);
-      div.addEventListener("click", function(){ dirDepth += 1; Flash_IMG(perm + "/" + fileSource[key].name);});
+      div.addEventListener("click", function(){
+        dirP.push(a.textContent);
+        Flash_IMG(perm + "/" + fileSource[key].name);
+      });
       insert.appendChild(div);
     } 
+  });
+}
+
+async function downloadFTP(loc){
+  console.log(loc);
+  const forData = new FormData();
+  forData.append("downLoad", loc);
+  await fetch("../php/data.php", {
+    method: 'POST',
+    body: forData,
+  })
+  .then(response => {
+    response.text().then((result) => {
+      console.log(result);
+    });
+  }).catch(response => {
+    console.error(response);
+  });
+}
+
+function getfileStats(url, _Size){
+  _Size = parseInt(_Size);
+  let fileBlob;
+  fetch(url).then((res) => {
+    fileBlob = res.blob();
+    return fileBlob;
+  }).then((fileBlob)=>{
+    // do something with the result here
+    console.log([fileBlob.size, _Size]);
+    if(fileBlob.size >= _Size){
+      console.log("kill timeout");
+      clearInterval(timeID);
+    }
   });
 }
