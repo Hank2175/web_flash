@@ -97,7 +97,10 @@ async function connect(ADB_mode){
       document.querySelector("#DEVLink").addEventListener("click", function(){ buttonLink("DEVLink", "DEVinfo"); getDEVinfo();});
       document.querySelector("#SCRLink").addEventListener("click", function(){ buttonLink("SCRLink", "SCRcap"); screenShot();});
       document.querySelector("#SCRshot").addEventListener("click", function(){ screenShot();});
-      document.querySelector("#Flash").addEventListener("click", function(){ buttonLink("Flash", "Flash_IMG"); Flash_IMG(".");});
+      document.querySelector("#Flash").addEventListener("click", function(){ 
+        buttonLink("Flash", "Flash_IMG");
+        document.querySelector("#download_page").style = "visibility: hidden";
+        Flash_IMG(".");});
       //SCRshot
     } 
   }
@@ -105,9 +108,7 @@ async function connect(ADB_mode){
 
 function Uint8toStr(filedata){
   let dataString = "";
-  // console.log(filedata.byteLength);
   for (let i = 0; i < filedata.byteLength; i++){
-    //console.log(String.fromCharCode(filedata.getUint8(i)));
     dataString += String.fromCharCode(filedata.getUint8(i));
   }
   console.log(dataString);
@@ -164,8 +165,8 @@ function buttonLink(buttonName, idName){
   var open = document.getElementById(idName);
   open.style.display="block";
   var btnActive = document.getElementById(buttonName);
-  btnActive.className="active";
-  btnActive.style="pointer-events: none;";
+  btnActive.className = "active";
+  btnActive.style = "pointer-events: none;";
 }
 
 async function getDEVinfo(){
@@ -187,13 +188,12 @@ async function getDEVinfo(){
   shell = await adb.shell("getprop ro.build.type");
   get = await shell.receive();
   let build = Uint8toStr(get.data);
-  // console.log(`${proName} ${modelName} ${deviceName}`);
-  document.getElementById("name").innerHTML=proName;
-  document.getElementById("model").innerHTML=modelName;
-  document.getElementById("device").innerHTML=deviceName;
-  document.getElementById("version").innerHTML=versionName;
-  document.getElementById("finger").innerHTML=fingerprint;
-  document.getElementById("build").innerHTML=build;
+  document.getElementById("name").innerHTML = proName;
+  document.getElementById("model").innerHTML = modelName;
+  document.getElementById("device").innerHTML = deviceName;
+  document.getElementById("version").innerHTML = versionName;
+  document.getElementById("finger").innerHTML = fingerprint;
+  document.getElementById("build").innerHTML = build;
 }
 
 var wait = (ms) => {
@@ -341,12 +341,7 @@ function fileBTN(fileSource, perm){
       }
       div.appendChild(a);
       div.addEventListener("click", function(){
-        //console.log([fileSource[key].name, fileSource[key].size]);
-        downloadFTP(perm + "/" + a.textContent);
-        //console.log(window.location.href + "image-buffer/");
-        timeID = setInterval(() => {
-          getfileStats(window.location.href + "image_buffer/" + fileSource[key].name, fileSource[key].size);
-        }, 2000);
+        downloadpage(perm, fileSource[key].size, fileSource[key].name, (a.textContent.indexOf('zip') > -1) ? "folder_zip" : "file");
       });
       insert.appendChild(div);
     } else if(fileSource[key].type == "dir"){
@@ -375,6 +370,10 @@ async function downloadFTP(loc){
   })
   .then(response => {
     response.text().then((result) => {
+      document.querySelector("#DLpertcentage").style.width = "100%";
+      document.querySelector("#DLpertcentage").style.backgroundColor = "lawngreen";
+      document.querySelector("#OK").style = "";
+      document.querySelector("#OK").innerHTML = "FLASH!";
       console.log(result);
     });
   }).catch(response => {
@@ -388,12 +387,57 @@ function getfileStats(url, _Size){
   fetch(url).then((res) => {
     fileBlob = res.blob();
     return fileBlob;
-  }).then((fileBlob)=>{
-    // do something with the result here
-    console.log([fileBlob.size, _Size]);
+  }).then((fileBlob) => {
+    let _Width = fileBlob.size / _Size * 100;
+    _Width = Math.round(_Width);
+    _Width = String(_Width);
+    document.querySelector("#DLpertcentage").style.width = _Width + "%";
     if(fileBlob.size >= _Size){
       console.log("kill timeout");
       clearInterval(timeID);
     }
+  });
+}
+
+function downloadpage(perm, filesize, filename, filetype){
+  let DP = document.querySelector("#download_page");
+  let DPI = document.querySelector("#download_page_index");
+
+  let DLline = document.createElement("div");
+  DLline.classList.add("DLline");
+  DLline.appendChild(document.createElement("div"));
+  DLline.lastElementChild.id = "DLpertcentage";
+  DPI.appendChild(DLline);
+  DPI.appendChild(document.createElement("div"));
+  let DPI_BTN = DPI.lastElementChild;
+  DPI_BTN.classList.add("btn_group");
+  let p = document.createElement("p");
+  let okBTN = document.createElement("a");
+  okBTN.id = "OK";
+  okBTN.classList.add("btn-wave", "btn-resize2");
+  okBTN.innerHTML = "OK";
+  let cancelBTN = document.createElement("a");
+  cancelBTN.id = "cancel";
+  cancelBTN.classList.add("btn-wave", "btn-resize2");
+  cancelBTN.innerHTML = "Cancel";
+  DPI_BTN.appendChild(okBTN);
+  DPI_BTN.appendChild(cancelBTN);
+  p.innerHTML = filename;
+  DP.style = "visibility: visible";
+  DPI.classList.add(filetype);
+  DPI.appendChild(p);
+  cancelBTN.addEventListener("click", function(){
+    DPI.classList.remove(filetype);
+    DP.style = "visibility: hidden";
+    while(DPI.lastChild)
+      DPI.removeChild(DPI.lastChild);
+  });
+  okBTN.addEventListener("click", function(){
+    console.log([filename, filesize]);
+    okBTN.style = "pointer-events: none;";
+    downloadFTP(perm + "/" + filename);
+    timeID = setInterval(() => {
+      getfileStats(window.location.href + "image_buffer/" + filename, filesize);
+    }, 4000);
   });
 }

@@ -416,13 +416,14 @@ div.content_section_text a:visited,
 
 #download_page {
   display: block;
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   z-index: 10;
   height: 100%;
   width: 100%;
-  background-color: #707070;
+  background-color: rgba(112,112,112,0.35);
+  backdrop-filter: blur(5px);
 }
 
 #download_page .download_page_index{
@@ -461,6 +462,25 @@ div.content_section_text a:visited,
   width: 50%;
   transform: translate(-50%, 0);
   top: unset;
+}
+
+#download_page .download_page_index .DLline {
+  position: absolute;
+  height: 10px;
+  width: 70%;
+  background-color: white;
+  left: 50%;
+  bottom: 120px;
+  transform: translate(-50%, 0);
+  border-radius: 5px;
+}
+
+.DLline #DLpertcentage{
+  height: 100%;
+  background-color: bisque;
+  width: 0%;
+  border-radius: 5px;
+  transition: all 1s;
 }
 
 .btn-resize2 {
