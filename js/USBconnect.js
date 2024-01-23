@@ -54,7 +54,7 @@ var serial = {};
 
 function showDevice(serial, proName, ADBorFastboot) {
   const myNode = document.querySelector("#paired");
-  while(myNode.firstChild){
+  while(myNode.firstChild) {
     myNode.removeChild(myNode.lastChild);
   }
 
@@ -72,8 +72,8 @@ let device = new fastboot.FastbootDevice();
 window.device = device;
 fastboot.setDebugLevel(2);
 
-async function connect(ADB_mode){
-  if(!ADB_mode){
+async function connect(ADB_mode) {
+  if(!ADB_mode) {
     await device._validateAndConnectDevice();
     let product = await device.getVariable("product");
     let serial = await device.getVariable("serialno");
@@ -93,11 +93,11 @@ async function connect(ADB_mode){
         // console.log(x);
         x.className="notdisabled";
       });
-      document.querySelector("#readmeLink").addEventListener("click", function(){ buttonLink("readmeLink","readme");});
-      document.querySelector("#DEVLink").addEventListener("click", function(){ buttonLink("DEVLink", "DEVinfo"); getDEVinfo();});
-      document.querySelector("#SCRLink").addEventListener("click", function(){ buttonLink("SCRLink", "SCRcap"); screenShot();});
-      document.querySelector("#SCRshot").addEventListener("click", function(){ screenShot();});
-      document.querySelector("#Flash").addEventListener("click", function(){ 
+      document.querySelector("#readmeLink").addEventListener("click", function() { buttonLink("readmeLink","readme");});
+      document.querySelector("#DEVLink").addEventListener("click", function() { buttonLink("DEVLink", "DEVinfo"); getDEVinfo();});
+      document.querySelector("#SCRLink").addEventListener("click", function() { buttonLink("SCRLink", "SCRcap"); screenShot();});
+      document.querySelector("#SCRshot").addEventListener("click", function() { screenShot();});
+      document.querySelector("#Flash").addEventListener("click", function() { 
         buttonLink("Flash", "Flash_IMG");
         document.querySelector("#download_page").style = "visibility: hidden";
         Flash_IMG(".");});
@@ -106,9 +106,9 @@ async function connect(ADB_mode){
   }
 }
 
-function Uint8toStr(filedata){
+function Uint8toStr(filedata) {
   let dataString = "";
-  for (let i = 0; i < filedata.byteLength; i++){
+  for (let i = 0; i < filedata.byteLength; i++) {
     dataString += String.fromCharCode(filedata.getUint8(i));
   }
   console.log(dataString);
@@ -122,13 +122,13 @@ var webusb;
 window.onload = _ => {
   document.querySelector("#connect").style = "visibility: hidden";
   document.querySelector("#pair").onclick = async function() {
-    if(webusb != null){
+    if(webusb != null) {
       await webusb.close();
       window.location.reload();
     }
     webusb = await Adb.open("WebUSB");
     console.log(webusb.device);
-    if(webusb.isAdb()){
+    if(webusb.isAdb()) {
       ADB_mode = true;
       adb = await webusb.connectAdb("host::", () => {
         console.log(webusb.device.productName);
@@ -137,7 +137,7 @@ window.onload = _ => {
       let get = await shell.receive();
       let proName = Uint8toStr(get.data);
       showDevice(webusb.device.serialNumber, proName, true);
-    } else if (webusb.isFastboot()){
+    } else if (webusb.isFastboot()) {
       device.device = webusb.device;
       await device._validateAndConnectDevice();
       ADB_mode = false;
@@ -148,11 +148,11 @@ window.onload = _ => {
     document.querySelector("#mask").style = "visibility: hidden";
     document.querySelector("#pair").style = "height: 15%; width: 46%; top: unset; bottom: 2%; left:52%; transform: translate(0%, 0%);";
     document.querySelector("#connect").style = "height: 15%; width: 46%; top: unset; bottom: 2%; left:3%; transform: translate(0%, 0%); visibility: initial;";
-    document.querySelector("#connect").addEventListener("click", function(){ connect(ADB_mode);});
+    document.querySelector("#connect").addEventListener("click", function() { connect(ADB_mode);});
   }
 }
 
-function buttonLink(buttonName, idName){
+function buttonLink(buttonName, idName) {
   const btnDisable = document.querySelectorAll(".active");
   btnDisable.forEach((x) => {
     x.className="notdisabled";
@@ -169,7 +169,7 @@ function buttonLink(buttonName, idName){
   btnActive.style = "pointer-events: none;";
 }
 
-async function getDEVinfo(){
+async function getDEVinfo() {
   let shell = await adb.shell("getprop ro.product.name");
   let get = await shell.receive();
   let proName = Uint8toStr(get.data);
@@ -199,12 +199,12 @@ async function getDEVinfo(){
 var wait = (ms) => {
   const start = Date.now();
   let now = start;
-  while(now - start < ms){
+  while(now - start < ms) {
     now = Date.now();
   }
 }
 
-async function screenShot(){
+async function screenShot() {
   console.log("ScreenShot!!!");
   document.querySelector("#screen_image").src = "";
   console.log(await adb.shell("screencap -p /sdcard/1.png"));
@@ -220,7 +220,7 @@ async function screenShot(){
   document.querySelector("#screen_image").src = a.href;
 }
 
-async function Flash_IMG(perm){
+async function Flash_IMG(perm) {
   let fileSource;
   const forData = new FormData();
   forData.append("action", perm);
@@ -238,7 +238,7 @@ async function Flash_IMG(perm){
   });
 }
 
-function Stack(){
+function Stack() {
   let items = [];
   this.push = (element =>{
     items.push(element);
@@ -263,21 +263,21 @@ function Stack(){
 var dirP = new Stack();
 var timeID;
 
-function fileBTN(fileSource, perm){
+function fileBTN(fileSource, perm) {
   // console.log(perm);
   // console.log(dirP.peek());
   // console.log(dirP.size());
   let insert = document.getElementById("Flash_IMG_index");
   let dir_link = document.getElementById("DIR_LINK");
-  while(insert.firstChild){
+  while(insert.firstChild) {
     insert.removeChild(insert.lastChild);
   }
-  if(dirP.size() == 0){
-    if(perm.indexOf('..') <= -1){
+  if(dirP.size() == 0) {
+    if(perm.indexOf('..') <= -1) {
       let a1 = document.createElement("a");
       a1.textContent = "/home";
-      a1.addEventListener("click", function(){ 
-        while(dir_link.lastChild){
+      a1.addEventListener("click", function() { 
+        while(dir_link.lastChild) {
           dir_link.removeChild(dir_link.lastChild);
         }
         perm = ".";
@@ -295,9 +295,9 @@ function fileBTN(fileSource, perm){
     div.appendChild(a);
     let a1 = document.createElement("a");
     a1.textContent = "/" + dirP.peek();
-    a1.addEventListener("click", function(){ 
+    a1.addEventListener("click", function() { 
       // console.log(perm);
-      while(a1.textContent != dir_link.lastChild.textContent){
+      while(a1.textContent != dir_link.lastChild.textContent) {
         dir_link.removeChild(dir_link.lastChild);
         perm = perm.replace("/" + dirP.peek(), "");
         dirP.pop();
@@ -306,7 +306,7 @@ function fileBTN(fileSource, perm){
       Flash_IMG(perm);
     });
     dir_link.appendChild(a1);
-    div.addEventListener("click", function(){
+    div.addEventListener("click", function() {
       dir_link.removeChild(dir_link.lastChild);
       dir_link.removeChild(dir_link.lastChild);
       console.log(perm);
@@ -319,7 +319,7 @@ function fileBTN(fileSource, perm){
     insert.appendChild(div);
   }
   fileSource = fileSource.sort((a, b) => {
-    if(a.name < b.name){
+    if(a.name < b.name) {
       return -1;
     }
   });
@@ -329,29 +329,29 @@ function fileBTN(fileSource, perm){
     // console.log(fileSource[key].name);
     // console.log(fileSource[key].type);
     // console.log(fileSource[key].perm);
-    if(fileSource[key].type == "file"){
+    if (fileSource[key].type == "file") {
       let a = document.createElement("a");
       a.classList.add("filelink");
       a.textContent = fileSource[key].name;
       let div = document.createElement("div");
-      if(a.textContent.indexOf('zip') > -1) {
+      //zip file can show up
+      if (a.textContent.indexOf('zip') > -1 && 
+         (a.textContent.length - a.textContent.indexOf('zip') == 3)) {
         div.classList.add("files", "folder_zip");
-      } else {
-        div.classList.add("files", "file");
+        div.appendChild(a);
+        div.addEventListener("click", function() {
+          downloadpage(perm, fileSource[key].size, fileSource[key].name, (a.textContent.indexOf('zip') > -1) ? "folder_zip" : "file");
+        });
+        insert.appendChild(div);
       }
-      div.appendChild(a);
-      div.addEventListener("click", function(){
-        downloadpage(perm, fileSource[key].size, fileSource[key].name, (a.textContent.indexOf('zip') > -1) ? "folder_zip" : "file");
-      });
-      insert.appendChild(div);
-    } else if(fileSource[key].type == "dir"){
+    } else if (fileSource[key].type == "dir") {
       let a = document.createElement("a");
       a.classList.add("filelink");
       a.textContent = fileSource[key].name;
       let div = document.createElement("div");
       div.classList.add("files", "folder");
       div.appendChild(a);
-      div.addEventListener("click", function(){
+      div.addEventListener("click", function() {
         dirP.push(a.textContent);
         Flash_IMG(perm + "/" + fileSource[key].name);
       });
@@ -360,7 +360,7 @@ function fileBTN(fileSource, perm){
   });
 }
 
-async function downloadFTP(loc){
+async function downloadFTP(loc ,filename) {
   console.log(loc);
   const forData = new FormData();
   forData.append("downLoad", loc);
@@ -374,14 +374,37 @@ async function downloadFTP(loc){
       document.querySelector("#DLpertcentage").style.backgroundColor = "lawngreen";
       document.querySelector("#OK").style = "";
       document.querySelector("#OK").innerHTML = "FLASH!";
-      console.log(result);
+      if(result === "0") { //download success!!!
+        return unzip(filename);
+      }
+    });
+  }).catch(response => {
+    console.error(response);
+    return false;
+  });
+}
+
+async function unzip(perm) {
+  console.log(perm);
+  const forData = new FormData();
+  forData.append("unzip", perm);
+  fetch("../php/data.php", {
+    method: 'POST',
+    body: forData,
+  })
+  .then(response => {
+    response.text().then((result) => {
+      if(result === "0") { //unzip success!!!
+        console.log("unzip successfil!!!");
+        return true;
+      }
     });
   }).catch(response => {
     console.error(response);
   });
 }
 
-function getfileStats(url, _Size){
+function getfileStats(url, _Size) {
   _Size = parseInt(_Size);
   let fileBlob;
   fetch(url).then((res) => {
@@ -392,14 +415,14 @@ function getfileStats(url, _Size){
     _Width = Math.round(_Width);
     _Width = String(_Width);
     document.querySelector("#DLpertcentage").style.width = _Width + "%";
-    if(fileBlob.size >= _Size){
+    if(fileBlob.size >= _Size) {
       console.log("kill timeout");
       clearInterval(timeID);
     }
   });
 }
 
-function downloadpage(perm, filesize, filename, filetype){
+function downloadpage(perm, filesize, filename, filetype) {
   let DP = document.querySelector("#download_page");
   let DPI = document.querySelector("#download_page_index");
 
@@ -415,7 +438,7 @@ function downloadpage(perm, filesize, filename, filetype){
   let okBTN = document.createElement("a");
   okBTN.id = "OK";
   okBTN.classList.add("btn-wave", "btn-resize2");
-  okBTN.innerHTML = "OK";
+  okBTN.innerHTML = "Download&Flash";
   let cancelBTN = document.createElement("a");
   cancelBTN.id = "cancel";
   cancelBTN.classList.add("btn-wave", "btn-resize2");
@@ -426,16 +449,17 @@ function downloadpage(perm, filesize, filename, filetype){
   DP.style = "visibility: visible";
   DPI.classList.add(filetype);
   DPI.appendChild(p);
-  cancelBTN.addEventListener("click", function(){
+  cancelBTN.addEventListener("click", function() {
     DPI.classList.remove(filetype);
     DP.style = "visibility: hidden";
     while(DPI.lastChild)
       DPI.removeChild(DPI.lastChild);
   });
-  okBTN.addEventListener("click", function(){
+  okBTN.addEventListener("click", function() {
     console.log([filename, filesize]);
     okBTN.style = "pointer-events: none;";
-    downloadFTP(perm + "/" + filename);
+    okBTN.innerHTML = "Downloading...";
+    downloadFTP(perm + "/" + filename ,filename);
     timeID = setInterval(() => {
       getfileStats(window.location.href + "image_buffer/" + filename, filesize);
     }, 4000);
