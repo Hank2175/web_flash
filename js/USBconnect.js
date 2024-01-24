@@ -198,6 +198,7 @@ async function getDEVinfo() {
 
 var wait = (ms) => {
   const start = Date.now();
+  console.log("Waiting for " + ms + "ms!")
   let now = start;
   while(now - start < ms) {
     now = Date.now();
@@ -372,8 +373,7 @@ async function downloadFTP(loc ,filename) {
     response.text().then((result) => {
       document.querySelector("#DLpertcentage").style.width = "100%";
       document.querySelector("#DLpertcentage").style.backgroundColor = "lawngreen";
-      document.querySelector("#OK").style = "";
-      document.querySelector("#OK").innerHTML = "FLASH!";
+      document.querySelector("#OK").innerHTML = "unzip...";
       if(result === "0") { //download success!!!
         return unzip(filename);
       }
@@ -394,14 +394,39 @@ async function unzip(perm) {
   })
   .then(response => {
     response.text().then((result) => {
-      if(result === "0") { //unzip success!!!
-        console.log("unzip successfil!!!");
-        return true;
-      }
+      console.log("unzip successfil!!!");
+      //console.log(result);
+      flash(result);
+      return true;
     });
   }).catch(response => {
     console.error(response);
   });
+}
+
+async function flash(perm) {
+  let okBTN = document.querySelector("#OK");
+  //okBTN.replaceWith(okBTN.cloneNode(true));
+  if(adb.transport.device.opened == true) {
+    await adb.shell("reboot bootloader");
+    wait(1000);
+    await webusb.close();
+    wait(10000);
+    document.querySelector("#OK").style = "";
+    document.querySelector("#OK").innerHTML = "FLASH!";
+    okBTN.addEventListener("click", async function() {
+      webusb = await Adb.open("WebUSB");
+      device.device = webusb.device;
+      await device._validateAndConnectDevice();
+      let product = await device.getVariable("product");
+      let serial = await device.getVariable("serialno");
+      let status = `Connect to ${product} (serial: ${serial})`;
+      console.log(status); // //"flash sbl1 " + perm + "sbl1.mbn"
+      console.log(window.location.href);
+      console.log(await device.runCommand("erase:oem"));
+      await device.runCommand("reboot");
+    });
+  }
 }
 
 function getfileStats(url, _Size) {
@@ -463,5 +488,5 @@ function downloadpage(perm, filesize, filename, filetype) {
     timeID = setInterval(() => {
       getfileStats(window.location.href + "image_buffer/" + filename, filesize);
     }, 4000);
-  });
+  }, {once: true});
 }

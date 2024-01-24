@@ -30,13 +30,10 @@
 		$retval = null;
 		exec("wget -P ".getcwd()."/../image_buffer $server_loc", $output, $retval);
 		exec("chmod 777 ".getcwd()."/../image_buffer/*.*");
-		//echo getcwd();
-		//echo "wget -P ".getcwd()."/../image_buffer $server_loc";
 		echo $retval;
 	}
 
 	function unzip($fileName){
-		//$fileName = "R13.0.6351.1009.zip";
 		if(file_exists(getcwd()."/../image_buffer/$fileName")){
 			//echo "File exist\n";
 			$stringCut = explode(".", $fileName);
@@ -45,13 +42,11 @@
 			for($x = 0; $x < ($num - 1); $x++){
 				$newName =  $newName.$stringCut[$x].".";
 			}
-			//echo $stringCut[$num - 1]; //strlen()
 			$newName = str_split($newName, strlen($newName)-1)[0];
-			//echo $newName;
 			$output = null;
 			$retval = null;
 			exec("unzip ".getcwd()."/../image_buffer/$fileName -d ".getcwd()."/../image_buffer/$newName", $output, $retval);
-			echo $retval;
+			echo "/image_buffer/$newName/";
 		}
 	}
 
