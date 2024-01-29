@@ -301,6 +301,7 @@ function fileBTN(fileSource, perm) {
       while(a1.textContent != dir_link.lastChild.textContent) {
         dir_link.removeChild(dir_link.lastChild);
         perm = perm.replace("/" + dirP.peek(), "");
+        console.log("Go to " + perm);
         dirP.pop();
       }
       dir_link.removeChild(dir_link.lastChild);
@@ -310,10 +311,8 @@ function fileBTN(fileSource, perm) {
     div.addEventListener("click", function() {
       dir_link.removeChild(dir_link.lastChild);
       dir_link.removeChild(dir_link.lastChild);
-      console.log(perm);
-      console.log(dirP.peek());
       perm = perm.replace("/" + dirP.peek(), "");
-      console.log(perm);
+      console.log("Go to " + perm);
       dirP.pop();
       Flash_IMG(perm);
     });
@@ -353,6 +352,7 @@ function fileBTN(fileSource, perm) {
       div.classList.add("files", "folder");
       div.appendChild(a);
       div.addEventListener("click", function() {
+        console.log("Go to " + a.textContent);
         dirP.push(a.textContent);
         Flash_IMG(perm + "/" + fileSource[key].name);
       });
@@ -375,7 +375,8 @@ async function downloadFTP(loc ,filename) {
       document.querySelector("#DLpertcentage").style.backgroundColor = "lawngreen";
       document.querySelector("#OK").innerHTML = "unzip...";
       if(result === "0") { //download success!!!
-        return unzip(filename);
+        // return unzip(filename);
+        return flash(filename);
       }
     });
   }).catch(response => {
@@ -395,7 +396,6 @@ async function unzip(perm) {
   .then(response => {
     response.text().then((result) => {
       console.log("unzip successfil!!!");
-      //console.log(result);
       flash(result);
       return true;
     });
