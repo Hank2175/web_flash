@@ -46,7 +46,18 @@
 			$output = null;
 			$retval = null;
 			exec("unzip ".getcwd()."/../image_buffer/$fileName -d ".getcwd()."/../image_buffer/$newName", $output, $retval);
-			echo "/image_buffer/$newName/";
+			exec("chmod 777 ".getcwd()."/../image_buffer/*.*");
+			echo "image_buffer/$newName/";
+		}
+	}
+
+	function clean($fileName){
+		if(file_exists(getcwd()."/../$fileName")){
+			$output = null;
+			$retval = null;
+			exec("rm -rf ".getcwd()."/../$fileName*", $output, $retval);
+			//rm -rf R21g.4.6530.1.4.20240112*
+			echo "$retval";
 		}
 	}
 
@@ -58,5 +69,8 @@
 	}
 	if(isset($_POST['unzip'])){
 		unzip($_POST['unzip']);
+	}
+	if(isset($_POST['remove'])){
+		clean($_POST['remove']);
 	}
 ?>

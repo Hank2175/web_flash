@@ -375,8 +375,7 @@ async function downloadFTP(loc ,filename) {
       document.querySelector("#DLpertcentage").style.backgroundColor = "lawngreen";
       document.querySelector("#OK").innerHTML = "unzip...";
       if(result === "0") { //download success!!!
-        // return unzip(filename);
-        return flash(filename);
+        return unzip(filename);
       }
     });
   }).catch(response => {
@@ -422,11 +421,53 @@ async function flash(perm) {
       let serial = await device.getVariable("serialno");
       let status = `Connect to ${product} (serial: ${serial})`;
       console.log(status); // //"flash sbl1 " + perm + "sbl1.mbn"
-      console.log(window.location.href);
-      console.log(await device.runCommand("erase:oem"));
+      let file_Loc = window.location.href + perm;
+      await flash_part(file_Loc, "sbl1", "sbl1.mbn");
+      await flash_part(file_Loc, "sbl1bak", "sbl1.mbn");
+      await flash_part(file_Loc, "aboot", "emmc_appsboot.mbn");
+      await flash_part(file_Loc, "abootbak", "emmc_appsboot.mbn");
+      await flash_part(file_Loc, "partition", "gpt_both0.bin");
+      await flash_part(file_Loc, "devcfg", "devcfg.mbn");
+      await flash_part(file_Loc, "dtbo", "dtbo.img");
+      await flash_part(file_Loc, "dtbobak", "dtbo.img");
+      await flash_part(file_Loc, "vbmeta", "vbmeta.img");
+      await flash_part(file_Loc, "vbmetabak", "vbmeta.img");
+      await flash_part(file_Loc, "boot", "boot.img");
+      await flash_part(file_Loc, "recovery", "recovery.img");
+      await flash_part(file_Loc, "system", "system.img");
+      await flash_part(file_Loc, "mdtp", "mdtp.img");
+      await flash_part(file_Loc, "splash", "splash.img");
+      await device.runCommand("erase:userdata");
+      await device.runCommand("erase:cache");
+      await device.runCommand("erase:misc");
+      await device.runCommand("erase:devinfo");
+      await device.runCommand("erase:reserved");
+      await device.runCommand("erase:oem");
       await device.runCommand("reboot");
+      const forData = new FormData();
+      perm = perm.slice(0, -1);
+      forData.append("remove", perm);
+      await fetch("../php/data.php", {
+        method: 'POST',
+        body: forData,
+      })
+      .then(response => {
+        response.text().then((result) => {
+          console.log("rm "+ perm +" successfil!!!");
+          return true;
+        });
+        }).catch(response => {
+          console.error(response);
+        });
     });
   }
+}
+
+async function flash_part(file_Loc, part, file) {
+  console.log("fastboot flash " + part + " " + file);
+  let passfile = await fetch(file_Loc + file).then(r => r.blob());
+  await device.flashBlob(part, passfile);
+  console.log("fastboot flash " + part + " " + file + "OK!\n");
 }
 
 function getfileStats(url, _Size) {
