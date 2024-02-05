@@ -405,6 +405,17 @@ div.content_section_text a:visited,
   background-color: rgba(0, 0, 0, 0.2);
 }
 
+#DIR_LINK{
+  position: fixed;
+  background: white;
+  z-index: 9;
+  width: 75vw;
+  margin: -5px 10px;
+  padding: 10px 20px;
+  border-radius: 5px;
+  box-shadow: 0 3px 6px 3px rgba(0,0,0,0.2);
+}
+
 #DIR_LINK a {
   padding: 0;
 }
@@ -412,6 +423,10 @@ div.content_section_text a:visited,
 #DIR_LINK a:hover {
   text-decoration: underline;
   color: red;
+}
+
+#Flash_IMG_index{
+  margin-top: 35px;
 }
 
 #download_page {

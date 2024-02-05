@@ -79,6 +79,26 @@ async function connect(ADB_mode) {
     let serial = await device.getVariable("serialno");
     let status = `Connect to ${product} (serial: ${serial})`;
     console.log(status);
+    let part = await device.getVariable("partition-type:super");//AOS10?
+    if(part === null){//AOS9
+      console.log("AOS9");
+    } else { //AOS10 or 13
+      part = await device.getVariable("partition-type:devcfg_a");
+      if(part === null){//AOS10
+        console.log("AOS10");
+      } else {
+        console.log("AOS13");
+      }
+    }
+    const open = document.querySelectorAll("#Flash");
+      open.forEach((x) => {
+        // console.log(x);
+        x.className="notdisabled";
+      });
+    document.querySelector("#Flash").addEventListener("click", function() { 
+      buttonLink("Flash", "Flash_IMG");
+      document.querySelector("#download_page").style = "visibility: hidden";
+      Flash_IMG(".");});
   } else {
     adb = await webusb.connectAdb("host::", () => {
       //console.log(webusb.device.productName);
@@ -403,71 +423,134 @@ async function unzip(perm) {
   });
 }
 
+async function AOS9Flash(perm){
+  let product = await device.getVariable("product");
+  let serial = await device.getVariable("serialno");
+  let status = `Connect to ${product} (serial: ${serial})`;
+  console.log(status); // //"flash sbl1 " + perm + "sbl1.mbn"
+  let file_Loc = window.location.href + perm;
+  await flash_part(file_Loc, "sbl1", "sbl1.mbn");
+  await flash_part(file_Loc, "sbl1bak", "sbl1.mbn");
+  await flash_part(file_Loc, "aboot", "emmc_appsboot.mbn");
+  await flash_part(file_Loc, "abootbak", "emmc_appsboot.mbn");
+  await flash_part(file_Loc, "partition", "gpt_both0.bin");
+  await flash_part(file_Loc, "devcfg", "devcfg.mbn");
+  await flash_part(file_Loc, "dtbo", "dtbo.img");
+  await flash_part(file_Loc, "dtbobak", "dtbo.img");
+  await flash_part(file_Loc, "vbmeta", "vbmeta.img");
+  await flash_part(file_Loc, "vbmetabak", "vbmeta.img");
+  await flash_part(file_Loc, "boot", "boot.img");
+  await flash_part(file_Loc, "recovery", "recovery.img");
+  await flash_part(file_Loc, "system", "system.img");
+  await flash_part(file_Loc, "mdtp", "mdtp.img");
+  await flash_part(file_Loc, "splash", "splash.img");
+  await device.runCommand("erase:userdata");
+  await device.runCommand("erase:cache");
+  await device.runCommand("erase:misc");
+  await device.runCommand("erase:devinfo");
+  await device.runCommand("erase:reserved");
+  await device.runCommand("erase:oem");
+  await device.runCommand("reboot");
+  rmImage(perm.slice(0, -1));
+  return true;
+}
+
+async function AOS10Flash(perm){
+  let product = await device.getVariable("product");
+  let serial = await device.getVariable("serialno");
+  let status = `Connect to ${product} (serial: ${serial})`;
+  console.log(status); // //"flash sbl1 " + perm + "sbl1.mbn"
+  let file_Loc = window.location.href + perm;
+  await flash_part(file_Loc, "sbl1", "sbl1.mbn");
+  await flash_part(file_Loc, "sbl1bak", "sbl1.mbn");
+  await flash_part(file_Loc, "aboot", "emmc_appsboot.mbn");
+  await flash_part(file_Loc, "abootbak", "emmc_appsboot.mbn");
+  await flash_part(file_Loc, "partition", "gpt_both0.bin");
+  await flash_part(file_Loc, "devcfg", "devcfg.mbn");
+  await flash_part(file_Loc, "dtbo", "dtbo.img");
+  await flash_part(file_Loc, "dtbobak", "dtbo.img");
+  await flash_part(file_Loc, "vbmeta", "vbmeta.img");
+  await flash_part(file_Loc, "vbmetabak", "vbmeta.img");
+  await flash_part(file_Loc, "boot", "boot.img");
+  await flash_part(file_Loc, "recovery", "recovery.img");
+  await flash_part(file_Loc, "super", "super.img");
+  await flash_part(file_Loc, "mdtp", "mdtp.img");
+  await flash_part(file_Loc, "splash", "splash.img");
+  await device.runCommand("erase:userdata");
+  await device.runCommand("erase:cache");
+  await device.runCommand("erase:misc");
+  await device.runCommand("erase:devinfo");
+  await device.runCommand("erase:reserved");
+  await device.runCommand("erase:oem");
+  await device.runCommand("reboot");
+  rmImage(perm.slice(0, -1));
+  return true;
+}
+
+async function AOS13Flash(perm){
+  
+}
+
+async function rmImage(perm){
+  const forData = new FormData();
+  forData.append("remove", perm);
+  await fetch("../php/data.php", {
+    method: 'POST',
+    body: forData,
+  })
+  .then(response => {
+    response.text().then(() => {
+      console.log("rm "+ perm +" successfil!!!");
+      return true;
+    });
+    }).catch(response => {
+      console.error(response);
+    });
+}
+
 async function flash(perm) {
   let okBTN = document.querySelector("#OK");
   //okBTN.replaceWith(okBTN.cloneNode(true));
-  if(adb.transport.device.opened == true) {
+  if(ADB_mode) {
     await adb.shell("reboot bootloader");
-    wait(1000);
     await webusb.close();
-    wait(10000);
-    document.querySelector("#OK").style = "";
-    document.querySelector("#OK").innerHTML = "FLASH!";
-    okBTN.addEventListener("click", async function() {
+    wait(11000);
+  } else {
+    wait(3000);
+  }
+  okBTN.style = "";
+  okBTN.innerHTML = "FLASH!";
+  okBTN.addEventListener("click", async function() {
+    if(ADB_mode) {
       webusb = await Adb.open("WebUSB");
       device.device = webusb.device;
       await device._validateAndConnectDevice();
-      let product = await device.getVariable("product");
-      let serial = await device.getVariable("serialno");
-      let status = `Connect to ${product} (serial: ${serial})`;
-      console.log(status); // //"flash sbl1 " + perm + "sbl1.mbn"
-      let file_Loc = window.location.href + perm;
-      await flash_part(file_Loc, "sbl1", "sbl1.mbn");
-      await flash_part(file_Loc, "sbl1bak", "sbl1.mbn");
-      await flash_part(file_Loc, "aboot", "emmc_appsboot.mbn");
-      await flash_part(file_Loc, "abootbak", "emmc_appsboot.mbn");
-      await flash_part(file_Loc, "partition", "gpt_both0.bin");
-      await flash_part(file_Loc, "devcfg", "devcfg.mbn");
-      await flash_part(file_Loc, "dtbo", "dtbo.img");
-      await flash_part(file_Loc, "dtbobak", "dtbo.img");
-      await flash_part(file_Loc, "vbmeta", "vbmeta.img");
-      await flash_part(file_Loc, "vbmetabak", "vbmeta.img");
-      await flash_part(file_Loc, "boot", "boot.img");
-      await flash_part(file_Loc, "recovery", "recovery.img");
-      await flash_part(file_Loc, "system", "system.img");
-      await flash_part(file_Loc, "mdtp", "mdtp.img");
-      await flash_part(file_Loc, "splash", "splash.img");
-      await device.runCommand("erase:userdata");
-      await device.runCommand("erase:cache");
-      await device.runCommand("erase:misc");
-      await device.runCommand("erase:devinfo");
-      await device.runCommand("erase:reserved");
-      await device.runCommand("erase:oem");
-      await device.runCommand("reboot");
-      const forData = new FormData();
-      perm = perm.slice(0, -1);
-      forData.append("remove", perm);
-      await fetch("../php/data.php", {
-        method: 'POST',
-        body: forData,
-      })
-      .then(response => {
-        response.text().then((result) => {
-          console.log("rm "+ perm +" successfil!!!");
-          return true;
-        });
-        }).catch(response => {
-          console.error(response);
-        });
-    });
-  }
+    }
+    okBTN.style = "pointer-events: none;";
+    okBTN.innerHTML = "Flashing...";
+    let part = await device.getVariable("partition-type:super");//AOS10?
+    if(part === null){//AOS9
+      console.log("AOS9");
+      await AOS9Flash(perm);
+    } else { //AOS10 or 13
+      part = await device.getVariable("partition-type:devcfg_a");
+      if(part === null){//AOS10
+        console.log("AOS10");
+        await AOS10Flash(perm);
+      } else {
+        console.log("AOS13");
+        // AOS13Flash(perm);
+      }
+    }
+    okBTN.innerHTML = "FLASHED!";
+  }, {once: true});
 }
 
 async function flash_part(file_Loc, part, file) {
   console.log("fastboot flash " + part + " " + file);
   let passfile = await fetch(file_Loc + file).then(r => r.blob());
   await device.flashBlob(part, passfile);
-  console.log("fastboot flash " + part + " " + file + "OK!\n");
+  console.log("fastboot flash " + part + " " + file + " OK!\n");
 }
 
 function getfileStats(url, _Size) {
