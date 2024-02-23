@@ -1,57 +1,6 @@
 // import * as AdbDaemonWebUsbDeviceManager from "../node_modules/@yume-chan/adb";
 import * as fastboot from "../node_modules/android-fastboot/dist/fastboot.mjs";
 
-var serial = {};
-
-(function() {
-  'use strict';
-
-  serial.requestPort = function() {
-    const filters = [
-      { classCode: 0xff, subclassCode: 0x42, protocolCode: 0x03 }, //fastboot protocol
-      { classCode: 0xff, subclassCode: 0x42, protocolCode: 0x01 }, //adb protocol
-      // { 'vendorId': 0x18d1, 'productId': 0xd00d },//chiron pro
-      // { 'vendorId': 0x05c6, 'productId': 0x90b8 },//triton
-      // { 'vendorId': 0x18d1, 'productId': 0x4ee7 },//phaeton
-    ];
-    return navigator.usb.requestDevice({ 'filters': filters }).then(
-      device => new serial.Port(device)
-    );
-  }
-
-  serial.Port = function(device) {
-    this.device_ = device;
-  };
-
-  serial.Port.prototype.connect = function() {
-    let readLoop = () => {
-      const {
-        endpointNumber
-      } = this.device_.configuration.interfaces[0].alternate.endpoints[0]
-      this.device_.transferIn(endpointNumber, 64).then(result => {
-        this.onReceive(result.data);
-        readLoop();
-      }, error => {
-        this.onReceiveError(error);
-      });
-    };
-    return this.device_.open()
-      .then(() => {
-        if (this.device_.configuration === null) {
-          return this.device_.selectConfiguration(1);
-        }
-      })
-      .then(() => this.device_.claimInterface(0))
-      .then(() => {
-        readLoop();
-    });
-  };
-
-  serial.Port.prototype.disconnect = function() {
-    return this.device_.close();
-  };
-})();
-
 function showDevice(serial, proName, ADBorFastboot) {
   const myNode = document.querySelector("#paired");
   while(myNode.firstChild) {
@@ -191,23 +140,29 @@ function buttonLink(buttonName, idName) {
 
 async function getDEVinfo() {
   let shell = await adb.shell("getprop ro.product.name");
+  wait(75);
   let get = await shell.receive();
   let proName = Uint8toStr(get.data);
   shell = await adb.shell("getprop ro.product.model");
+  wait(75);
   get = await shell.receive();
   let modelName = Uint8toStr(get.data);
   shell = await adb.shell("getprop ro.product.device");
+  wait(75);
   get = await shell.receive();
   let deviceName = Uint8toStr(get.data);
   shell = await adb.shell("getprop ro.build.version.release");
+  wait(75);
   get = await shell.receive();
   let versionName = Uint8toStr(get.data);
   shell = await adb.shell("getprop ro.build.fingerprint");
+  wait(75);
   get = await shell.receive();
   let fingerprint = Uint8toStr(get.data);
   shell = await adb.shell("getprop ro.build.type");
+  wait(75);
   get = await shell.receive();
-  let build = Uint8toStr(get.data);
+  let build = Uint8toStr(get.data);//
   document.getElementById("name").innerHTML = proName;
   document.getElementById("model").innerHTML = modelName;
   document.getElementById("device").innerHTML = deviceName;
@@ -229,8 +184,9 @@ async function screenShot() {
   console.log("ScreenShot!!!");
   document.querySelector("#screen_image").src = "";
   console.log(await adb.shell("screencap -p /sdcard/1.png"));
-  wait(700);
+  wait(1200);
   let sync = await adb.sync();
+  wait(300);
   let content = await sync.pull("/sdcard/1.png");
   console.log(await sync.quit());
   let a = document.getElementById("DWPIC");
@@ -510,7 +466,6 @@ async function rmImage(perm){
 
 async function flash(perm) {
   let okBTN = document.querySelector("#OK");
-  //okBTN.replaceWith(okBTN.cloneNode(true));
   if(ADB_mode) {
     await adb.shell("reboot bootloader");
     await webusb.close();
@@ -526,7 +481,7 @@ async function flash(perm) {
       device.device = webusb.device;
       await device._validateAndConnectDevice();
     }
-    okBTN.style = "pointer-events: none;";
+    okBTN.style = "pointer-events: none; line-height: 90%;";
     okBTN.innerHTML = "Flashing...";
     let part = await device.getVariable("partition-type:super");//AOS10?
     if(part === null){//AOS9
@@ -543,14 +498,17 @@ async function flash(perm) {
       }
     }
     okBTN.innerHTML = "FLASHED!";
+    document.querySelector("#cancel").innerHTML = "CLOSE！";
   }, {once: true});
 }
 
 async function flash_part(file_Loc, part, file) {
+  let okBTN = document.querySelector("#OK");
+  okBTN.innerHTML = "flash:" + part;
   console.log("fastboot flash " + part + " " + file);
   let passfile = await fetch(file_Loc + file).then(r => r.blob());
   await device.flashBlob(part, passfile);
-  console.log("fastboot flash " + part + " " + file + " OK!\n");
+  okBTN.innerHTML = "flash " + part + " " + file + " OK!\n";
 }
 
 function getfileStats(url, _Size) {
@@ -587,7 +545,7 @@ function downloadpage(perm, filesize, filename, filetype) {
   let okBTN = document.createElement("a");
   okBTN.id = "OK";
   okBTN.classList.add("btn-wave", "btn-resize2");
-  okBTN.innerHTML = "Download&Flash";
+  okBTN.innerHTML = "Download";
   let cancelBTN = document.createElement("a");
   cancelBTN.id = "cancel";
   cancelBTN.classList.add("btn-wave", "btn-resize2");
@@ -611,6 +569,6 @@ function downloadpage(perm, filesize, filename, filetype) {
     downloadFTP(perm + "/" + filename ,filename);
     timeID = setInterval(() => {
       getfileStats(window.location.href + "image_buffer/" + filename, filesize);
-    }, 4000);
+    }, 5000);
   }, {once: true});
 }
