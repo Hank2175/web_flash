@@ -23,7 +23,6 @@ fastboot.setDebugLevel(2);
 
 async function connect(ADB_mode) {
   if(!ADB_mode) {
-    await device._validateAndConnectDevice();
     let product = await device.getVariable("product");
     let serial = await device.getVariable("serialno");
     let status = `Connect to ${product} (serial: ${serial})`;
@@ -41,37 +40,29 @@ async function connect(ADB_mode) {
     }
     const open = document.querySelectorAll("#Flash");
       open.forEach((x) => {
-        // console.log(x);
         x.className="notdisabled";
       });
     document.querySelector("#Flash").addEventListener("click", function() { 
       buttonLink("Flash", "Flash_IMG");
       document.querySelector("#download_page").style = "visibility: hidden";
       Flash_IMG(".");});
-  } else {
-    adb = await webusb.connectAdb("host::", () => {
-      //console.log(webusb.device.productName);
+  } else if(adb.transport.device.opened == true) {
+    let shell = await adb.shell("getprop ro.product.name");
+    let get = await shell.receive();
+    Uint8toStr(get.data);
+    document.querySelector("#connect").style = "height: 15%; width: 46%; top: unset; bottom: 2%; left:3%; transform: translate(0%, 0%); visibility: hidden;";
+    const open = document.querySelectorAll(".disabled");
+    open.forEach((x) => {
+      x.className="notdisabled";
     });
-    if(adb.transport.device.opened == true) {
-      let shell = await adb.shell("getprop ro.product.name");
-      let get = await shell.receive();
-      Uint8toStr(get.data);
-      document.querySelector("#connect").style = "height: 15%; width: 46%; top: unset; bottom: 2%; left:3%; transform: translate(0%, 0%); visibility: hidden;";
-      const open = document.querySelectorAll(".disabled");
-      open.forEach((x) => {
-        // console.log(x);
-        x.className="notdisabled";
-      });
-      document.querySelector("#readmeLink").addEventListener("click", function() { buttonLink("readmeLink","readme");});
-      document.querySelector("#DEVLink").addEventListener("click", function() { buttonLink("DEVLink", "DEVinfo"); getDEVinfo();});
-      document.querySelector("#SCRLink").addEventListener("click", function() { buttonLink("SCRLink", "SCRcap"); screenShot();});
-      document.querySelector("#SCRshot").addEventListener("click", function() { screenShot();});
-      document.querySelector("#Flash").addEventListener("click", function() { 
-        buttonLink("Flash", "Flash_IMG");
-        document.querySelector("#download_page").style = "visibility: hidden";
-        Flash_IMG(".");});
-      //SCRshot
-    } 
+    document.querySelector("#readmeLink").addEventListener("click", function() { buttonLink("readmeLink","readme");});
+    document.querySelector("#DEVLink").addEventListener("click", function() { buttonLink("DEVLink", "DEVinfo"); getDEVinfo();});
+    document.querySelector("#SCRLink").addEventListener("click", function() { buttonLink("SCRLink", "SCRcap"); screenShot();});
+    document.querySelector("#SCRshot").addEventListener("click", function() { screenShot();});
+    document.querySelector("#Flash").addEventListener("click", function() { 
+      buttonLink("Flash", "Flash_IMG");
+      document.querySelector("#download_page").style = "visibility: hidden";
+      Flash_IMG(".");});
   }
 }
 
@@ -87,6 +78,7 @@ function Uint8toStr(filedata) {
 var ADB_mode;
 var adb;
 var webusb;
+var serialNumber_backup;
 
 window.onload = _ => {
   document.querySelector("#connect").style = "visibility: hidden";
@@ -95,29 +87,44 @@ window.onload = _ => {
       await webusb.close();
       window.location.reload();
     }
-    webusb = await Adb.open("WebUSB");
-    console.log(webusb.device);
-    if(webusb.isAdb()) {
-      ADB_mode = true;
-      adb = await webusb.connectAdb("host::", () => {
-        console.log(webusb.device.productName);
-      });
-      let shell = await adb.shell("getprop ro.product.name");
-      let get = await shell.receive();
-      let proName = Uint8toStr(get.data);
-      showDevice(webusb.device.serialNumber, proName, true);
-    } else if (webusb.isFastboot()) {
-      device.device = webusb.device;
-      await device._validateAndConnectDevice();
-      ADB_mode = false;
-      showDevice(webusb.device.serialNumber, "Android", false);
-      await webusb.close();
+    try{
+      webusb = await Adb.open("WebUSB");
+      if(webusb.isAdb()) {
+        ADB_mode = true;
+        adb = await webusb.connectAdb("host::", () => {
+          console.log(webusb.device.productName);
+        });
+        let shell = await adb.shell("getprop ro.product.name");
+        let get = await shell.receive();
+        let proName = Uint8toStr(get.data);
+        showDevice(webusb.device.serialNumber, proName, true);
+      } else if (webusb.isFastboot()) {
+        device.device = webusb.device;
+        await device._validateAndConnectDevice();
+        ADB_mode = false;
+        showDevice(webusb.device.serialNumber, "Android", false);
+        // await webusb.close();
+      }
+      serialNumber_backup = webusb.device.serialNumber;
+      
+      document.querySelector("#mask").style = "visibility: hidden";
+      // document.querySelector("#pair").style = "height: 15%; width: 46%; top: unset; bottom: 2%; left:52%; transform: translate(0%, 0%);";
+      // document.querySelector("#connect").style = "height: 15%; width: 46%; top: unset; bottom: 2%; left:3%; transform: translate(0%, 0%); visibility: initial;";
+      // document.querySelector("#connect").addEventListener("click", function() { connect(ADB_mode);});
+      if(webusb.isAdb() || webusb.isFastboot()) {
+        connect(ADB_mode);
+      }
     }
-    
-    document.querySelector("#mask").style = "visibility: hidden";
-    document.querySelector("#pair").style = "height: 15%; width: 46%; top: unset; bottom: 2%; left:52%; transform: translate(0%, 0%);";
-    document.querySelector("#connect").style = "height: 15%; width: 46%; top: unset; bottom: 2%; left:3%; transform: translate(0%, 0%); visibility: initial;";
-    document.querySelector("#connect").addEventListener("click", function() { connect(ADB_mode);});
+    catch(e){
+      if(e.name == "NotFoundError"){
+        alert("No device selected!");
+      } else if(e.name == "NetworkError"){
+        alert("Some thing wrong, please try again!");
+        alert("Try use this command on terminal -> 'adb kill-server'");
+      } else {
+        alert(e);
+      }
+    }
   }
 }
 
@@ -190,7 +197,8 @@ async function screenShot() {
   let content = await sync.pull("/sdcard/1.png");
   console.log(await sync.quit());
   let a = document.getElementById("DWPIC");
-  a.href = await URL.createObjectURL(new Blob([content]));
+  wait(300);
+  a.href = await URL.createObjectURL(new Blob([content], {type: 'image/png'}));
   a.download = "screenshot.png";
   //a.click();
   // document.getElementById("screen_image").appendChild(a);
@@ -398,6 +406,7 @@ async function AOS9Flash(perm){
   await flash_part(file_Loc, "boot", "boot.img");
   await flash_part(file_Loc, "recovery", "recovery.img");
   await flash_part(file_Loc, "system", "system.img");
+  await flash_part(file_Loc, "vendor", "vendor.img");
   await flash_part(file_Loc, "mdtp", "mdtp.img");
   await flash_part(file_Loc, "splash", "splash.img");
   await device.runCommand("erase:userdata");
@@ -456,7 +465,7 @@ async function rmImage(perm){
   })
   .then(response => {
     response.text().then(() => {
-      console.log("rm "+ perm +" successfil!!!");
+      console.log("rm "+ perm +" successful!!!");
       return true;
     });
     }).catch(response => {
@@ -464,20 +473,38 @@ async function rmImage(perm){
     });
 }
 
-async function flash(perm) {
+async function flash(perm, retry=false) {
   let okBTN = document.querySelector("#OK");
-  if(ADB_mode) {
+  if(ADB_mode && retry == false) {
     await adb.shell("reboot bootloader");
     await webusb.close();
     wait(11000);
-  } else {
-    wait(3000);
+  } else if(!ADB_mode){
+    alert("Please comfirm that you select correct device for image update!");
+    alert("If you make a wrong selection, it would make your device malfunction!");
   }
-  okBTN.style = "";
-  okBTN.innerHTML = "FLASH!";
+  okBTN.style = "line-height: 90%;";
+  okBTN.innerHTML = "FLASH " + serialNumber_backup;
   okBTN.addEventListener("click", async function() {
     if(ADB_mode) {
-      webusb = await Adb.open("WebUSB");
+      try{
+        webusb = await Adb.open("WebUSB");
+      } catch(e){
+        if(e.name == "NotFoundError"){
+          alert("No device selected!");
+        } else if(e.name == "NetworkError"){
+          alert("Some thing wrong, please try again!");
+          alert("Try use this command on terminal -> 'adb kill-server'");
+        } else {
+          alert(e);
+        }
+        return flash(perm, true);
+      }
+      if(serialNumber_backup != webusb.device.serialNumber){
+        alert("Wrong device you selected!!!");
+        alert("Please select device '" + serialNumber_backup + "'");
+        return flash(perm, true);
+      }
       device.device = webusb.device;
       await device._validateAndConnectDevice();
     }
@@ -499,6 +526,7 @@ async function flash(perm) {
     }
     okBTN.innerHTML = "FLASHED!";
     document.querySelector("#cancel").innerHTML = "CLOSE！";
+    alert("Update finished!!!\nPlease close this window!");
   }, {once: true});
 }
 
