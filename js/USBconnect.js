@@ -556,12 +556,12 @@ async function update_image(perm, retry=false) {
         } else {
           alert(e);
         }
-        return flash(perm, true);
+        return update_image(perm, true);
       }
       if(serialNumber_backup != webusb.device.serialNumber){
         alert("Wrong device you selected!!!");
         alert("Please select device '" + serialNumber_backup + "'");
-        return flash(perm, true);
+        return update_image(perm, true);
       }
       device.device = webusb.device;
       await device._validateAndConnectDevice();
