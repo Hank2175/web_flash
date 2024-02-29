@@ -22,15 +22,19 @@
 	}
 
 	function downloadFile($fileName){
-		$ftp_server = "10.88.25.179";
-		$ftp_user = "readonly2";
-		$ftp_pass = "g7g2mc";
-		$server_loc = "ftp://readonly2:g7g2mc@10.88.25.179/$fileName";
-		$output = null;
-		$retval = null;
-		exec("wget -P ".getcwd()."/../image_buffer $server_loc", $output, $retval);
-		exec("chmod 777 ".getcwd()."/../image_buffer/*.*");
-		echo $retval;
+		if(file_exists(getcwd()."/../image_buffer/".$_POST['Exist'])){
+			echo "0";
+		} else {
+			$ftp_server = "10.88.25.179";
+			$ftp_user = "readonly2";
+			$ftp_pass = "g7g2mc";
+			$server_loc = "ftp://readonly2:g7g2mc@10.88.25.179/$fileName";
+			$output = null;
+			$retval = null;
+			exec("wget -P ".getcwd()."/../image_buffer $server_loc", $output, $retval);
+			exec("chmod 777 ".getcwd()."/../image_buffer/*.*");
+			echo $retval;
+		}
 	}
 
 	function unzip($fileName){
