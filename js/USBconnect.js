@@ -347,25 +347,40 @@ function fileBTN(fileSource, perm) {
 
 async function downloadFTP(loc ,filename) {
   console.log(loc);
-  const forData = new FormData();
-  forData.append("downLoad", loc);
-  forData.append("Exist", filename);
-  await fetch("../php/data.php", {
-    method: 'POST',
-    body: forData,
-  })
-  .then(response => {
-    response.text().then((result) => {
-      document.querySelector("#DLpertcentage").style.width = "100%";
-      document.querySelector("#DLpertcentage").style.backgroundColor = "lawngreen";
-      if(result === "0") { //download success!!!
-        return update_image(filename);
-      }
+  let file_Loc = window.location.href + "image_buffer/" + filename;
+  let okBTN = document.querySelector("#OK");
+  let passfile = await fetch(file_Loc ,{ method: 'HEAD' });
+  const contentLength = Number(passfile.headers.get('Content-Length'));
+  let fileStream = [];
+  const CHUNK_SIZE = 1024*1024*10;
+  let offset = 0;
+  while(offset < contentLength){
+    const end = Math.min(offset + CHUNK_SIZE, contentLength);
+    const options = {
+      headers: { 'Range': `bytes=${offset}-${end-1}` }
+    }
+    const blob = await fetch(file_Loc ,options).then(r => r.blob())
+    .catch(() => {
+      console.log("download error");
+      return;
     });
-  }).catch(response => {
-    console.error(response);
-    return false;
-  });
+    if(blob.size > 0){
+      fileStream.push(blob);
+      offset = end;
+      const percentage = Math.round((offset / contentLength) * 100);
+      document.querySelector("#DLpertcentage").style.width = percentage + "%";
+      okBTN.innerHTML = percentage + "%";
+    } else {
+      console.log("download error");
+      return;
+    }
+  }
+  const result = new Blob(fileStream, { type: passfile.headers.get('Content-type') });
+  fileStream = null;
+  document.querySelector("#DLpertcentage").style.width = "100%";
+  document.querySelector("#DLpertcentage").style.backgroundColor = "lawngreen";
+  okBTN.innerHTML = "UNZIP...";
+  update_image(result);
 }
 
 async function flash_part(file_Loc, part, file) {
@@ -526,12 +541,14 @@ async function rmImage(perm){
 }
 
 async function update_image(perm, retry=false) {
-  let file_Loc = window.location.href + "image_buffer/" + perm;
+  // let file_Loc = window.location.href + "image_buffer/" + perm;
+  let reader = new fastboot.ZipReader(new fastboot.BlobReader(perm));
+  let entries = await reader.getEntries();
   let okBTN = document.querySelector("#OK");
   if(ADB_mode && retry == false) {
     await adb.shell("reboot bootloader");
     await webusb.close();
-    wait(11000);
+    wait(10000);
   } else if(!ADB_mode && retry == true){
     alert("Please comfirm that you select correct device for image update!");
     alert("If you make a wrong selection, it would make your device malfunction!");
@@ -539,11 +556,13 @@ async function update_image(perm, retry=false) {
   okBTN.style = "line-height: 90%;";
   okBTN.innerHTML = "FLASH " + serialNumber_backup;
   okBTN.addEventListener("click", async function() {
-    okBTN.innerHTML = "Flashing...";
+    // console.log(file_Loc);
+    okBTN.innerHTML = "Fetching...";
     wait(300);
-    let passfile = await fetch(file_Loc).then(r => r.blob());
-    let reader = new fastboot.ZipReader(new fastboot.BlobReader(passfile));
-    let entries = await reader.getEntries();
+    // let passfile = await fetch(file_Loc).then(r => r.blob());
+    // let reader = new fastboot.ZipReader(new fastboot.BlobReader(perm));
+    // let entries = await reader.getEntries();
+    okBTN.innerHTML = "Flashing...";
     if(ADB_mode) {
       try{
         webusb = await Adb.open("WebUSB");
@@ -643,8 +662,8 @@ function downloadpage(perm, filesize, filename, filetype) {
     okBTN.style = "pointer-events: none;";
     okBTN.innerHTML = "Downloading...";
     downloadFTP(perm + "/" + filename ,filename);
-    timeID = setInterval(() => {
-      getfileStats(window.location.href + "image_buffer/" + filename, filesize);
-    }, 5000);
+    // timeID = setInterval(() => {
+    //   getfileStats(window.location.href + "image_buffer/" + filename, filesize);
+    // }, 5000);
   }, {once: true});
 }
