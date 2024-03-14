@@ -157,46 +157,53 @@ function Uint8toStr(filedata) {
 }
 
 window.onload = _ => {
-  document.querySelector("#pair").onclick = async function() {
-    if(webusb != null) {
-      window.location.reload();
-    }
-    try{
-      webusb = await Adb.open("WebUSB");
-      if(webusb.isAdb()) {
-        ADB_mode = true;
-        adb = await webusb.connectAdb("host::", () => {
-          console.log(webusb.device.productName);
-        });
-        let shell = await adb.shell("getprop ro.product.name");
-        let get = await shell.receive();
-        let proName = Uint8toStr(get.data);
-        check_proName = proName.slice(0, proName.length - 1);
-        showDevice(webusb.device.serialNumber, proName, true);
-      } else if (webusb.isFastboot()) {
-        device.device = webusb.device;
-        await device._validateAndConnectDevice();
-        ADB_mode = false;
-        showDevice(webusb.device.serialNumber, "Android", false);
-      }
-      serialNumber_backup = webusb.device.serialNumber;
-      
-      document.querySelector("#mask").style = "visibility: hidden";
-      if(webusb.isAdb() || webusb.isFastboot()) {
-        connect(ADB_mode);
-      }
-    }
-    catch(e){
-      if(e.name == "NotFoundError"){
-        alert("No device selected!");
-      } else if(e.name == "NetworkError"){
-        alert("Some thing wrong, please try again!");
-        alert("Try use this command on terminal -> 'adb kill-server'");
-      } else {
-        alert(e);
+  //Check Chromium-base or not.
+  let chrome_check = window.navigator.userAgent.indexOf("Chrome") > -1;
+  if(chrome_check){
+    document.querySelector("#pair").onclick = async function() {
+      if(webusb != null) {
         window.location.reload();
       }
+      try{
+        webusb = await Adb.open("WebUSB");
+        if(webusb.isAdb()) {
+          ADB_mode = true;
+          adb = await webusb.connectAdb("host::", () => {
+            console.log(webusb.device.productName);
+          });
+          let shell = await adb.shell("getprop ro.product.name");
+          let get = await shell.receive();
+          let proName = Uint8toStr(get.data);
+          check_proName = proName.slice(0, proName.length - 1);
+          showDevice(webusb.device.serialNumber, proName, true);
+        } else if (webusb.isFastboot()) {
+          device.device = webusb.device;
+          await device._validateAndConnectDevice();
+          ADB_mode = false;
+          showDevice(webusb.device.serialNumber, "Android", false);
+        }
+        serialNumber_backup = webusb.device.serialNumber;
+        
+        document.querySelector("#mask").style = "visibility: hidden";
+        if(webusb.isAdb() || webusb.isFastboot()) {
+          connect(ADB_mode);
+        }
+      }
+      catch(e){
+        if(e.name == "NotFoundError"){
+          alert("No device selected!");
+        } else if(e.name == "NetworkError"){
+          alert("Some thing wrong, please try again!");
+          alert("Try use this command on terminal -> 'adb kill-server'");
+        } else {
+          alert(e);
+          window.location.reload();
+        }
+      }
     }
+  } else {
+    alert("'Chromium-base' browser required!");
+    document.querySelector("#pair").lastChild.innerHTML = "不可用";
   }
 }
 
