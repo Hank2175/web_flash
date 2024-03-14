@@ -36,15 +36,15 @@ div.device-list {
 .btn-wave {
   display: block;
   height: 30%;
-  width: 70%;
+  width: 80%;
   position: absolute;
-  top: 50%;
+  top: 60%;
   left: 50%;
   transform: translate(-50%, -50%);
   color: #FFFFFF;
   text-decoration: none;
   text-align: center;
-  padding: 10% 15px;
+  padding: 20% 8px;
   border: 3px solid #707070;
   border-radius: 5px;
   font-family: 微軟正黑體;
@@ -103,6 +103,7 @@ div.device-list {
   top: -100%;
   left: 0;
   z-index: 1;
+  padding: 5px;
   background-color: #D8DBE2;
 }
 
@@ -163,13 +164,11 @@ div.main_page {
   position: relative;
   margin: 10px;
   padding: 5px;
-
   display: inline-block;
-
   background-color: #b8b8b8;
-
   text-align: center;
   height: calc(100vh - 30px);
+  width: calc(100vw - 20px);
   border-radius: 20px;
 }
 
@@ -197,6 +196,7 @@ div.menu {
   border-radius: 15px 0 0 15px;
   padding: 10px;
 }
+
 div.index {
   padding: 10px;
   position: absolute;
@@ -205,6 +205,7 @@ div.index {
   display: block;
   height: calc(100% - 60px);
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 div.table_of_contents {
@@ -234,7 +235,7 @@ div.content_section {
   height: calc(100% - 60px);
   text-align: left;
   display: inline-flex;
-  width: 98vw;
+  width: 100%;
 }
 
 div.content_section_text {
@@ -391,7 +392,7 @@ div.content_section_text a:visited,
   width: 100%;
   text-align: center;
   color: rgba(0, 0, 0, 0.7);
-  z-index: 10;
+  z-index: 8;
   word-wrap: break-word;
   font-size: 12px;
 }
@@ -413,6 +414,8 @@ div.content_section_text a:visited,
   margin: -5px 10px;
   padding: 10px 20px;
   border-radius: 5px;
+  flex-wrap: wrap;
+  display: flex;
   box-shadow: 0 3px 6px 3px rgba(0,0,0,0.2);
 }
 
@@ -425,8 +428,38 @@ div.content_section_text a:visited,
   color: red;
 }
 
+#DIR_direct_LINK {
+  height: 40px;
+  margin: 50px 10px 0 10px;
+  background-color: antiquewhite;
+  border-radius: 5px;
+  box-shadow: 0 3px 6px 3px rgba(0,0,0,0.2);
+  width: 75vw;
+  position: fixed;
+  display: flex;
+  z-index: 9;
+}
+
+#DIR_direct_LINK #DW_IMG{
+  position: relative;
+  height: 40px !important;
+  width: 20%;
+  padding: 15px 0;
+  left: 0;
+  top: 0;
+  transform: unset;
+  margin-top: -3px;
+}
+
+#download_path{
+  width: 80%;
+  height: 100%;
+  border-style: none;
+  z-index: 9;
+}
+
 #Flash_IMG_index{
-  margin-top: 35px;
+  margin-top: 70px;
 }
 
 #download_page {
@@ -500,9 +533,78 @@ div.content_section_text a:visited,
 
 .btn-resize2 {
   height: 80px;
-  width: 40%;
-  left: 30%;
+  width: 50%;
+  left: 25%;
   position: relative;
   margin-right: 15px;
   background-color: #707070;
+}
+
+@media (max-width: 767.98px) {
+  div.menu {
+    height: 25%;
+    display: flex;
+    width: 100%;
+    border-radius: 15px 15px 0 0;
+  }
+  div.device-list {
+    height: 100%;
+    width: 33%;
+    display: block;
+    position: relative;
+    margin: 0;
+    padding: 10px;
+    background-color: #FFFFFF;
+    border-radius: 10px;
+  }
+  ul.nav {
+    display: flex;
+    width: 100%;
+    margin: 0;
+  }
+  ul.nav li {
+    height: 50px;
+    width: 45%;
+    margin: 5px 0 5px 5px;
+  }
+  div.index{
+    left: 0 !important;
+    top: 25% !important;
+    width: 100%;
+    height: 75% !important;
+  }
+  .btn_group {
+    width: calc(100% - 30px) !important;
+  }
+  .btn-resize1 {
+    height: 50px;
+    width: 30%;
+    padding: 10px 20px;
+  }
+  #SCRcap .content_section_text .btn_group .btn-wave {
+    left: 33%;
+  }
+  #download_page .download_page_index {
+    width: 96%;
+  }
+  #download_page .download_page_index .DLline {
+    width: 90%;
+  }
+  #download_page .download_page_index .btn_group {
+    width: 90%;
+  }
+  #DIR_LINK {
+    margin: 0;
+    width: calc(100% - 50px) !important;
+  }
+  #DIR_direct_LINK {
+    margin: 50px 0 0 0;
+    width: 100% !important;
+    border-style: none;
+  }
+  #Flash_IMG_index .files {
+    height: 140px;
+    width: 110px;
+    margin: 0;
+  }
 }

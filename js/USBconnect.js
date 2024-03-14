@@ -1,6 +1,50 @@
 // import * as AdbDaemonWebUsbDeviceManager from "../node_modules/@yume-chan/adb";
 import * as fastboot from "./fastboot.mjs";
 
+function Stack() {
+  let items = [];
+  this.push = (element =>{
+    items.push(element);
+  });
+  this.pop = () => {
+    items.pop();
+  };
+  this.peek = () => {
+    return items[items.length - 1];
+  };
+  this.empty = () => {
+    return items.length === 0;
+  };
+  this.size = () => {
+    return items.length;
+  };
+  this.clear = () => {
+    items = [];
+  };
+}
+var dirP = new Stack();
+
+var wait = (ms) => {
+  const start = Date.now();
+  console.log("Waiting for " + ms + "ms!")
+  let now = start;
+  while(now - start < ms) {
+    now = Date.now();
+  }
+}
+
+var device = new fastboot.FastbootDevice();
+window.device = device;
+fastboot.setDebugLevel(2);
+var AOS = 9; // default set to AOS9
+var ADB_mode;
+var adb;
+var webusb;
+var serialNumber_backup;
+var check_proName = "";
+var can_Download = true;
+
+//Show basic device info on MainPage left side.
 function showDevice(serial, proName, ADBorFastboot) {
   const myNode = document.querySelector("#paired");
   while(myNode.firstChild) {
@@ -16,118 +60,7 @@ function showDevice(serial, proName, ADBorFastboot) {
   myNode.appendChild(p);
 }
 
-
-let device = new fastboot.FastbootDevice();
-window.device = device;
-fastboot.setDebugLevel(2);
-
-async function connect(ADB_mode) {
-  if(!ADB_mode) {
-    let product = await device.getVariable("product");
-    let serial = await device.getVariable("serialno");
-    let status = `Connect to ${product} (serial: ${serial})`;
-    console.log(status);
-    let part = await device.getVariable("partition-type:super");//AOS10?
-    if(part === null){//AOS9
-      console.log("AOS9");
-    } else { //AOS10 or 13
-      part = await device.getVariable("partition-type:devcfg_a");
-      if(part === null){//AOS10
-        console.log("AOS10");
-      } else {
-        console.log("AOS13");
-      }
-    }
-    const open = document.querySelectorAll("#Flash");
-      open.forEach((x) => {
-        x.className="notdisabled";
-      });
-    document.querySelector("#Flash").addEventListener("click", function() { 
-      buttonLink("Flash", "Flash_IMG");
-      document.querySelector("#download_page").style = "visibility: hidden";
-      Flash_IMG(".");});
-  } else if(adb.transport.device.opened == true) {
-    let shell = await adb.shell("getprop ro.product.name");
-    let get = await shell.receive();
-    Uint8toStr(get.data);
-    document.querySelector("#connect").style = "height: 15%; width: 46%; top: unset; bottom: 2%; left:3%; transform: translate(0%, 0%); visibility: hidden;";
-    const open = document.querySelectorAll(".disabled");
-    open.forEach((x) => {
-      x.className="notdisabled";
-    });
-    document.querySelector("#readmeLink").addEventListener("click", function() { buttonLink("readmeLink","readme");});
-    document.querySelector("#DEVLink").addEventListener("click", function() { buttonLink("DEVLink", "DEVinfo"); getDEVinfo();});
-    document.querySelector("#SCRLink").addEventListener("click", function() { buttonLink("SCRLink", "SCRcap"); screenShot();});
-    document.querySelector("#SCRshot").addEventListener("click", function() { screenShot();});
-    document.querySelector("#Flash").addEventListener("click", function() { 
-      buttonLink("Flash", "Flash_IMG");
-      document.querySelector("#download_page").style = "visibility: hidden";
-      Flash_IMG(".");});
-  }
-}
-
-function Uint8toStr(filedata) {
-  let dataString = "";
-  for (let i = 0; i < filedata.byteLength; i++) {
-    dataString += String.fromCharCode(filedata.getUint8(i));
-  }
-  console.log(dataString);
-  return dataString;
-}
-
-var ADB_mode;
-var adb;
-var webusb;
-var serialNumber_backup;
-
-window.onload = _ => {
-  document.querySelector("#connect").style = "visibility: hidden";
-  document.querySelector("#pair").onclick = async function() {
-    if(webusb != null) {
-      await webusb.close();
-      window.location.reload();
-    }
-    try{
-      webusb = await Adb.open("WebUSB");
-      if(webusb.isAdb()) {
-        ADB_mode = true;
-        adb = await webusb.connectAdb("host::", () => {
-          console.log(webusb.device.productName);
-        });
-        let shell = await adb.shell("getprop ro.product.name");
-        let get = await shell.receive();
-        let proName = Uint8toStr(get.data);
-        showDevice(webusb.device.serialNumber, proName, true);
-      } else if (webusb.isFastboot()) {
-        device.device = webusb.device;
-        await device._validateAndConnectDevice();
-        ADB_mode = false;
-        showDevice(webusb.device.serialNumber, "Android", false);
-        // await webusb.close();
-      }
-      serialNumber_backup = webusb.device.serialNumber;
-      
-      document.querySelector("#mask").style = "visibility: hidden";
-      // document.querySelector("#pair").style = "height: 15%; width: 46%; top: unset; bottom: 2%; left:52%; transform: translate(0%, 0%);";
-      // document.querySelector("#connect").style = "height: 15%; width: 46%; top: unset; bottom: 2%; left:3%; transform: translate(0%, 0%); visibility: initial;";
-      // document.querySelector("#connect").addEventListener("click", function() { connect(ADB_mode);});
-      if(webusb.isAdb() || webusb.isFastboot()) {
-        connect(ADB_mode);
-      }
-    }
-    catch(e){
-      if(e.name == "NotFoundError"){
-        alert("No device selected!");
-      } else if(e.name == "NetworkError"){
-        alert("Some thing wrong, please try again!");
-        alert("Try use this command on terminal -> 'adb kill-server'");
-      } else {
-        alert(e);
-      }
-    }
-  }
-}
-
+//Establish left side button to their correspond function.
 function buttonLink(buttonName, idName) {
   const btnDisable = document.querySelectorAll(".active");
   btnDisable.forEach((x) => {
@@ -145,6 +78,129 @@ function buttonLink(buttonName, idName) {
   btnActive.style = "pointer-events: none;";
 }
 
+//Making a connection to deivice, either ADB or Fastboot mode.
+async function connect(ADB_mode) {
+  document.querySelector("#pair").style = "visibility: hidden";
+  if(!ADB_mode) {
+    let product = await device.getVariable("product");
+    let serial = await device.getVariable("serialno");
+    let status = `Connect to ${product} (serial: ${serial})`;
+    console.log(status);
+    let part = await device.getVariable("partition-type:super");//AOS10?
+    if(part === null){//AOS9
+      console.log("AOS9");
+    } else { //AOS10 or 13
+      part = await device.getVariable("partition-type:devcfg_a");
+      if(part === null){//AOS10
+        console.log("AOS10");
+        AOS = 10;
+      } else {
+        console.log("AOS13");
+        AOS = 13;
+      }
+    }
+    const open = document.querySelectorAll("#Flash");
+      open.forEach((x) => {
+        x.className="notdisabled";
+      });
+    document.querySelector("#Flash").addEventListener("click", function() { 
+      buttonLink("Flash", "Flash_IMG");
+      document.querySelector("#download_page").style = "visibility: hidden";
+      Flash_IMG("");
+      fetch("https://10.88.25.179/ftp/make_creator.sh" ,{ method: 'HEAD', rejectUnauthorized: false })
+      .catch((e) => {
+        console.log(e);
+        alert("會開一個新分頁，請幫我確認能不能正常瀏覽，如無法正常瀏覽，請按進階，然後繼續！");
+        alert("確認能正常瀏覽後，就直接關掉該分頁！");
+        window.open("https://10.88.25.179/ftp", "_blank")
+        });
+      });
+  } else if(adb.transport.device.opened == true) {
+    let shell = await adb.shell("getprop ro.product.name");
+    let get = await shell.receive();
+    Uint8toStr(get.data);
+    wait(75);
+    shell = await adb.shell("getprop ro.build.version.release");
+    wait(75);
+    get = await shell.receive();
+    AOS = Number(Uint8toStr(get.data));
+    const open = document.querySelectorAll(".disabled");
+    open.forEach((x) => {
+      x.className="notdisabled";
+    });
+    document.querySelector("#readmeLink").addEventListener("click", function() { buttonLink("readmeLink","readme");});
+    document.querySelector("#DEVLink").addEventListener("click", function() { buttonLink("DEVLink", "DEVinfo"); getDEVinfo();});
+    document.querySelector("#SCRLink").addEventListener("click", function() { buttonLink("SCRLink", "SCRcap"); screenShot();});
+    document.querySelector("#SCRshot").addEventListener("click", function() { screenShot();});
+    document.querySelector("#Flash").addEventListener("click", function() { 
+      buttonLink("Flash", "Flash_IMG");
+      document.querySelector("#download_page").style = "visibility: hidden";
+      Flash_IMG("");
+      fetch("https://10.88.25.179/ftp/make_creator.sh" ,{ method: 'HEAD', rejectUnauthorized: false })
+      .catch((e) => {
+        console.log(e);
+        alert("會開一個新分頁，請幫我確認能不能正常瀏覽，如無法正常瀏覽，請按進階，然後繼續！");
+        alert("確認能正常瀏覽後，就直接關掉該分頁！");
+        window.open("https://10.88.25.179/ftp", "_blank")
+        });
+      });
+  }
+}
+
+function Uint8toStr(filedata) {
+  let dataString = "";
+  for (let i = 0; i < filedata.byteLength; i++) {
+    dataString += String.fromCharCode(filedata.getUint8(i));
+  }
+  // console.log(dataString);
+  return dataString;
+}
+
+window.onload = _ => {
+  document.querySelector("#pair").onclick = async function() {
+    if(webusb != null) {
+      window.location.reload();
+    }
+    try{
+      webusb = await Adb.open("WebUSB");
+      if(webusb.isAdb()) {
+        ADB_mode = true;
+        adb = await webusb.connectAdb("host::", () => {
+          console.log(webusb.device.productName);
+        });
+        let shell = await adb.shell("getprop ro.product.name");
+        let get = await shell.receive();
+        let proName = Uint8toStr(get.data);
+        check_proName = proName.slice(0, proName.length - 1);
+        showDevice(webusb.device.serialNumber, proName, true);
+      } else if (webusb.isFastboot()) {
+        device.device = webusb.device;
+        await device._validateAndConnectDevice();
+        ADB_mode = false;
+        showDevice(webusb.device.serialNumber, "Android", false);
+      }
+      serialNumber_backup = webusb.device.serialNumber;
+      
+      document.querySelector("#mask").style = "visibility: hidden";
+      if(webusb.isAdb() || webusb.isFastboot()) {
+        connect(ADB_mode);
+      }
+    }
+    catch(e){
+      if(e.name == "NotFoundError"){
+        alert("No device selected!");
+      } else if(e.name == "NetworkError"){
+        alert("Some thing wrong, please try again!");
+        alert("Try use this command on terminal -> 'adb kill-server'");
+      } else {
+        alert(e);
+        window.location.reload();
+      }
+    }
+  }
+}
+
+//When device is under ADB mode, we can use shell command to get some infomation we needed.
 async function getDEVinfo() {
   let shell = await adb.shell("getprop ro.product.name");
   wait(75);
@@ -178,15 +234,7 @@ async function getDEVinfo() {
   document.getElementById("build").innerHTML = build;
 }
 
-var wait = (ms) => {
-  const start = Date.now();
-  console.log("Waiting for " + ms + "ms!")
-  let now = start;
-  while(now - start < ms) {
-    now = Date.now();
-  }
-}
-
+//Screen shot picture get, but AOS 13 cannot use(wait for fix).
 async function screenShot() {
   console.log("ScreenShot!!!");
   document.querySelector("#screen_image").src = "";
@@ -200,8 +248,6 @@ async function screenShot() {
   wait(300);
   a.href = await URL.createObjectURL(new Blob([content], {type: 'image/png'}));
   a.download = "screenshot.png";
-  //a.click();
-  // document.getElementById("screen_image").appendChild(a);
   document.querySelector("#screen_image").src = a.href;
 }
 
@@ -223,35 +269,50 @@ async function Flash_IMG(perm) {
   });
 }
 
-function Stack() {
-  let items = [];
-  this.push = (element =>{
-    items.push(element);
+
+//Direct download image by key in image address.
+function directDownload(){
+  let DW_IMG_btn = document.getElementById("DW_IMG");
+  DW_IMG_btn.addEventListener("click", async function() {
+    let DW_PATH = document.getElementById("download_path").value;
+    console.log(DW_PATH);
+    if(DW_PATH.includes("https://10.88.25.179/ftp") || DW_PATH[0] != "/"){
+      alert("路徑錯誤(e.g. /Project_Release/chiron_pro_9.0/BaseImage/R26g_B6350_userdebug/R26g.4.6350.1.2.20210127.zip)");
+      document.getElementById("download_path").value = "";
+      return;
+    }
+    let passfile = await fetch("https://10.88.25.179/ftp" + DW_PATH ,{ method: 'HEAD', rejectUnauthorized: false });
+    console.log(check_proName);
+    console.log(DW_PATH.includes(check_proName));
+    if(DW_PATH.length == 0){
+      alert("No path input!!!");
+    } else {
+      if(DW_PATH.includes(".zip") && (DW_PATH.includes(check_proName) || check_proName=="") && passfile.status == 200){
+        if(check_proName==""){
+          alert("在'FASTBOOT' mode底下，直接輸入網址下載是一件很危險的事情，請確定知道你在做什麼！");
+        }
+        DW_PATH = DW_PATH.split("/");
+        console.log(DW_PATH);
+        let perm = "";
+        for(let i = 0; i < DW_PATH.length - 1; i++){
+          perm += DW_PATH[i] + "/";
+        }
+        console.log(perm);
+        downloadpage(perm, Number(passfile.headers.get('Content-Length')), DW_PATH[DW_PATH.length - 1], "folder_zip");
+      } else {
+        alert("路徑錯誤，檔案不存在，或選錯project！");
+      }
+      document.getElementById("download_path").value = "";
+    }
   });
-  this.pop = () => {
-    items.pop();
-  };
-  this.peek = () => {
-    return items[items.length - 1];
-  };
-  this.empty = () => {
-    return items.length === 0;
-  };
-  this.size = () => {
-    return items.length;
-  };
-  this.clear = () => {
-    items = [];
-  };
 }
 
-var dirP = new Stack();
-var timeID;
 
+//Flash image page ,which can select image you wanna download!
+//Or ,key in image address directly.
 function fileBTN(fileSource, perm) {
-  // console.log(perm);
-  // console.log(dirP.peek());
-  // console.log(dirP.size());
+  directDownload(); //directDownload block preparing!
+
   let insert = document.getElementById("Flash_IMG_index");
   let dir_link = document.getElementById("DIR_LINK");
   while(insert.firstChild) {
@@ -280,8 +341,7 @@ function fileBTN(fileSource, perm) {
     div.appendChild(a);
     let a1 = document.createElement("a");
     a1.textContent = "/" + dirP.peek();
-    a1.addEventListener("click", function() { 
-      // console.log(perm);
+    a1.addEventListener("click", function() {
       while(a1.textContent != dir_link.lastChild.textContent) {
         dir_link.removeChild(dir_link.lastChild);
         perm = perm.replace("/" + dirP.peek(), "");
@@ -302,11 +362,14 @@ function fileBTN(fileSource, perm) {
     });
     insert.appendChild(div);
   }
+  //file name sorting
   fileSource = fileSource.sort((a, b) => {
     if(a.name < b.name) {
       return -1;
     }
   });
+
+  //file, dir buttin make
   let keys = Object.keys(fileSource);
   keys.forEach(key => {
     // console.log(fileSource[key]);
@@ -324,7 +387,7 @@ function fileBTN(fileSource, perm) {
         div.classList.add("files", "folder_zip");
         div.appendChild(a);
         div.addEventListener("click", function() {
-          downloadpage(perm, fileSource[key].size, fileSource[key].name, (a.textContent.indexOf('zip') > -1) ? "folder_zip" : "file");
+          downloadpage(perm + "/", fileSource[key].size, fileSource[key].name, (a.textContent.indexOf('zip') > -1) ? "folder_zip" : "file");
         });
         insert.appendChild(div);
       }
@@ -345,44 +408,71 @@ function fileBTN(fileSource, perm) {
   });
 }
 
+
+//File download by many block because it can reduce the memory cost.
+//And save it into blob file type
 async function downloadFTP(loc ,filename) {
-  console.log(loc);
-  let file_Loc = window.location.href + "image_buffer/" + filename;
+  let file_Loc = "//10.88.25.179/ftp" + loc;
   let okBTN = document.querySelector("#OK");
-  let passfile = await fetch(file_Loc ,{ method: 'HEAD' });
+  let passfile = await fetch(file_Loc ,{ method: 'HEAD', rejectUnauthorized: false })
+  .catch((e) => {
+    console.log(e);
+    can_Download = false;
+  });;
+  if(passfile.status != 200){
+    alert("Fetch ERROR!!!");
+    console.log("Download is interrupt!!!");
+    okBTN.style = "padding: 30px 10px;";
+    can_Download = true;
+    return;
+  }
   const contentLength = Number(passfile.headers.get('Content-Length'));
   let fileStream = [];
   const CHUNK_SIZE = 1024*1024*10;
   let offset = 0;
-  while(offset < contentLength){
+  while(offset < contentLength && can_Download){
     const end = Math.min(offset + CHUNK_SIZE, contentLength);
     const options = {
-      headers: { 'Range': `bytes=${offset}-${end-1}` }
+      headers: { 'Range': `bytes=${offset}-${end-1}` },
+      rejectUnauthorized: false
     }
-    const blob = await fetch(file_Loc ,options).then(r => r.blob())
-    .catch(() => {
-      console.log("download error");
-      return;
+    const blob = await fetch(file_Loc ,options).then(r => {
+      return r.status == 206 ? r.blob() : null;
+    }).catch((e) => {
+      console.log(e);
+      can_Download = false;
     });
-    if(blob.size > 0){
+    if(blob != null){ //status 206 means fetch partial sucessful.
       fileStream.push(blob);
       offset = end;
       const percentage = Math.round((offset / contentLength) * 100);
       document.querySelector("#DLpertcentage").style.width = percentage + "%";
       okBTN.innerHTML = percentage + "%";
     } else {
-      console.log("download error");
-      return;
+      can_Download = false;
     }
   }
-  const result = new Blob(fileStream, { type: passfile.headers.get('Content-type') });
-  fileStream = null;
-  document.querySelector("#DLpertcentage").style.width = "100%";
-  document.querySelector("#DLpertcentage").style.backgroundColor = "lawngreen";
-  okBTN.innerHTML = "UNZIP...";
-  update_image(result);
+  if(can_Download){
+    const result = new Blob(fileStream, { type: passfile.headers.get('Content-type') });
+    fileStream = null;
+    document.querySelector("#DLpertcentage").style.width = "100%";
+    document.querySelector("#DLpertcentage").style.backgroundColor = "lawngreen";
+    okBTN.innerHTML = "UNZIP...";
+    update_image(result);
+  } else {
+    fileStream = null;
+    document.querySelector("#DLpertcentage").style.width = "100%";
+    document.querySelector("#DLpertcentage").style.backgroundColor = "red";
+    can_Download = true;
+    okBTN.innerHTML = "ERROR";
+    alert("Fetch ERROR!!!");
+    console.log("Download is interrupt!!!");
+  }
+  return;
 }
 
+
+//fastboot flash part (like system, vendor, boot, etc...)
 async function flash_part(file_Loc, part, file) {
   let okBTN = document.querySelector("#OK");
   okBTN.innerHTML = "flash:" + part;
@@ -427,7 +517,6 @@ async function AOS9Flash(file_Loc){
   await device.runCommand("erase:reserved");
   await device.runCommand("erase:oem");
   await device.runCommand("reboot");
-  // rmImage(perm.slice(0, -1));
   return true;
 }
 
@@ -458,7 +547,6 @@ async function AOS10Flash(file_Loc){//entries
   await device.runCommand("erase:reserved");
   await device.runCommand("erase:oem");
   await device.runCommand("reboot");
-  // rmImage(perm.slice(0, -1));
   return true;
 }
 
@@ -519,32 +607,16 @@ async function AOS13Flash(file_Loc){
   await device.runCommand("erase:reserved");
   await device.runCommand("erase:oem");
   await device.runCommand("reboot");
-  // rmImage(perm.slice(0, -1));
   return true;
 }
 
-async function rmImage(perm){
-  const forData = new FormData();
-  forData.append("remove", perm);
-  await fetch("../php/data.php", {
-    method: 'POST',
-    body: forData,
-  })
-  .then(response => {
-    response.text().then(() => {
-      console.log("rm "+ perm +" successful!!!");
-      return true;
-    });
-    }).catch(response => {
-      console.error(response);
-    });
-}
-
+//Start flash image
 async function update_image(perm, retry=false) {
   // let file_Loc = window.location.href + "image_buffer/" + perm;
   let reader = new fastboot.ZipReader(new fastboot.BlobReader(perm));
   let entries = await reader.getEntries();
   let okBTN = document.querySelector("#OK");
+  let cancelBtn = document.querySelector("#cancel");
   if(ADB_mode && retry == false) {
     await adb.shell("reboot bootloader");
     await webusb.close();
@@ -553,15 +625,14 @@ async function update_image(perm, retry=false) {
     alert("Please comfirm that you select correct device for image update!");
     alert("If you make a wrong selection, it would make your device malfunction!");
   }
-  okBTN.style = "line-height: 90%;";
+  okBTN.style = "padding: 30px 10px; line-height: 90%;";
   okBTN.innerHTML = "FLASH " + serialNumber_backup;
   okBTN.addEventListener("click", async function() {
     // console.log(file_Loc);
+    okBTN.style = "pointer-events: none; padding: 30px 10px; line-height: 90%;";
     okBTN.innerHTML = "Fetching...";
+    cancelBtn.style = "pointer-events: none; padding: 30px 10px;";
     wait(300);
-    // let passfile = await fetch(file_Loc).then(r => r.blob());
-    // let reader = new fastboot.ZipReader(new fastboot.BlobReader(perm));
-    // let entries = await reader.getEntries();
     okBTN.innerHTML = "Flashing...";
     if(ADB_mode) {
       try{
@@ -585,17 +656,16 @@ async function update_image(perm, retry=false) {
       device.device = webusb.device;
       await device._validateAndConnectDevice();
     }
-    okBTN.style = "pointer-events: none; line-height: 90%;";
     let part = await device.getVariable("partition-type:super");//AOS10?
-    if(part === null){//AOS9
+    if(part === null && AOS == 9){//AOS9
       console.log("AOS9");
       await AOS9Flash(entries);
     } else { //AOS10 or 13
       part = await device.getVariable("partition-type:devcfg_a");
-      if(part === null){//AOS10
+      if(part === null && AOS == 10){//AOS10
         console.log("AOS10");
         await AOS10Flash(entries);
-      } else {
+      } else if(AOS == 13) {
         console.log("AOS13");
         await AOS13Flash(entries);
       }
@@ -603,67 +673,61 @@ async function update_image(perm, retry=false) {
     okBTN.innerHTML = "FLASHED!";
     document.querySelector("#cancel").innerHTML = "CLOSE！";
     alert("Update finished!!!\nPlease close this window!");
+    cancelBtn.style = "padding: 30px 10px;";
   }, {once: true});
 }
 
-function getfileStats(url, _Size) {
-  _Size = parseInt(_Size);
-  let fileBlob;
-  fetch(url).then((res) => {
-    fileBlob = res.blob();
-    return fileBlob;
-  }).then((fileBlob) => {
-    let _Width = fileBlob.size / _Size * 100;
-    _Width = Math.round(_Width);
-    _Width = String(_Width);
-    document.querySelector("#DLpertcentage").style.width = _Width + "%";
-    if(fileBlob.size >= _Size) {
-      console.log("kill timeout");
-      clearInterval(timeID);
-    }
-  });
-}
 
+/*Download pop up page make
+/ In this session, program can simple distinguish 
+/ if you choose correct project and image or not!
+*/
 function downloadpage(perm, filesize, filename, filetype) {
-  let DP = document.querySelector("#download_page");
-  let DPI = document.querySelector("#download_page_index");
+  if(!filename.includes("OTA") && !filename.includes("QFIL") &&
+     !filename.includes("kernel") && !filename.includes("target") &&
+     (perm.includes(check_proName) || check_proName=="")){ // Simple distinguishment
+    let DP = document.querySelector("#download_page");
+    let DPI = document.querySelector("#download_page_index");
 
-  let DLline = document.createElement("div");
-  DLline.classList.add("DLline");
-  DLline.appendChild(document.createElement("div"));
-  DLline.lastElementChild.id = "DLpertcentage";
-  DPI.appendChild(DLline);
-  DPI.appendChild(document.createElement("div"));
-  let DPI_BTN = DPI.lastElementChild;
-  DPI_BTN.classList.add("btn_group");
-  let p = document.createElement("p");
-  let okBTN = document.createElement("a");
-  okBTN.id = "OK";
-  okBTN.classList.add("btn-wave", "btn-resize2");
-  okBTN.innerHTML = "Download";
-  let cancelBTN = document.createElement("a");
-  cancelBTN.id = "cancel";
-  cancelBTN.classList.add("btn-wave", "btn-resize2");
-  cancelBTN.innerHTML = "Cancel";
-  DPI_BTN.appendChild(okBTN);
-  DPI_BTN.appendChild(cancelBTN);
-  p.innerHTML = filename;
-  DP.style = "visibility: visible";
-  DPI.classList.add(filetype);
-  DPI.appendChild(p);
-  cancelBTN.addEventListener("click", function() {
-    DPI.classList.remove(filetype);
-    DP.style = "visibility: hidden";
-    while(DPI.lastChild)
-      DPI.removeChild(DPI.lastChild);
-  });
-  okBTN.addEventListener("click", function() {
-    console.log([filename, filesize]);
-    okBTN.style = "pointer-events: none;";
-    okBTN.innerHTML = "Downloading...";
-    downloadFTP(perm + "/" + filename ,filename);
-    // timeID = setInterval(() => {
-    //   getfileStats(window.location.href + "image_buffer/" + filename, filesize);
-    // }, 5000);
-  }, {once: true});
+    let DLline = document.createElement("div");
+    DLline.classList.add("DLline");
+    DLline.appendChild(document.createElement("div"));
+    DLline.lastElementChild.id = "DLpertcentage";
+    DPI.appendChild(DLline);
+    DPI.appendChild(document.createElement("div"));
+    let DPI_BTN = DPI.lastElementChild;
+    DPI_BTN.classList.add("btn_group");
+    let p = document.createElement("p");
+    let okBTN = document.createElement("a");
+    okBTN.id = "OK";
+    okBTN.classList.add("btn-wave", "btn-resize2");
+    okBTN.innerHTML = "Download";
+    okBTN.style = "padding: 30px 10px;";
+    let cancelBTN = document.createElement("a");
+    cancelBTN.id = "cancel";
+    cancelBTN.classList.add("btn-wave", "btn-resize2");
+    cancelBTN.innerHTML = "Cancel";
+    cancelBTN.style = "padding: 30px 10px;";
+    DPI_BTN.appendChild(okBTN);
+    DPI_BTN.appendChild(cancelBTN);
+    p.innerHTML = filename;
+    DP.style = "visibility: visible";
+    DPI.classList.add(filetype);
+    DPI.appendChild(p);
+    cancelBTN.addEventListener("click", function() {
+      DPI.classList.remove(filetype);
+      DP.style = "visibility: hidden";
+      can_Download = false;
+      while(DPI.lastChild)
+        DPI.removeChild(DPI.lastChild);
+    });
+    okBTN.addEventListener("click", function() {
+      console.log([filename, filesize]);
+      okBTN.style = "pointer-events: none; padding: 30px 10px;";
+      okBTN.innerHTML = "Downloading...";
+      downloadFTP(perm + filename ,filename);
+    }, {once: true});
+  } else {
+    alert("選錯project或是檔案！");
+  }
 }

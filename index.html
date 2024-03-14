@@ -2,6 +2,7 @@
 <html lang="zh-TW">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>MiTac WEB Flashing system</title>
     <link rel="icon" href="./img/favicon.png" />
     <link rel="stylesheet" href="./css/normalize.css">
@@ -20,10 +21,9 @@
         </span>
       </div>
       <div class="content_section floating_element">
-        <div class="menu col-2">
+        <div class="menu col-md-2">
           <div class="device-list">
             <div id="mask" class="no-device"></div>
-            <a id="connect" class="btn-wave"><span>連線</span></a>
             <a id="pair" class="btn-wave"><span>配對</span></a>
             <div id="paired" class="devices"></div>
           </div>
@@ -34,7 +34,7 @@
             <li class="disabled" id="Flash"><div class="navlink"><a>Flash Image</a></div></li>
           </ul>
         </div>
-        <div class="index col-10" id="readme">
+        <div class="index col-md-10" id="readme">
           <div class="content_section_text">
             <p>
               感謝你的使用，不需要為你的電腦設定什麼，只需要將Device插上電腦，並開啟ADB debug模式。
@@ -64,7 +64,7 @@
             <br>
           </div>
         </div>
-        <div class="index col-10" id="DEVinfo" style="display:none;">
+        <div class="index col-md-10" id="DEVinfo" style="display:none;">
           <div class="content_section_text">
             <h5>Product Name:</h5>
             <p id="name"></p>
@@ -86,7 +86,7 @@
             <hr>
           </div>
         </div>
-        <div class="index col-10" id="SCRcap" style="display:none;">
+        <div class="index col-md-10" id="SCRcap" style="display:none;">
           <div class="content_section_text">
             <div class="btn_group">
               <a id="SCRshot" class="btn-wave btn-resize1"><span>截圖</span></a>
@@ -95,8 +95,12 @@
             <img id="screen_image"/>
           </div>
         </div>
-        <div class="index col-10" id="Flash_IMG" style="display:none;">
+        <div class="index col-md-10" id="Flash_IMG" style="display:none;">
           <div class="content_section_text" id="DIR_LINK"></div>
+          <div class="content_section_text" id="DIR_direct_LINK">
+            <input type="text" id="download_path" required minlength="10" placeholder="e.g. /Project_Release/chiron_pro_9.0/BaseImage/R26g_B6350_userdebug/R26g.4.6350.1.2.20210127.zip"/>
+            <a id="DW_IMG" class="btn-wave"><span>下載image</span></a>
+          </div>
           <div class="content_section_text" id="Flash_IMG_index"></div>
           <div class="content_section_text" id="download_page" style="visibility: hidden;">
             <div class="download_page_index" id="download_page_index"></div>
