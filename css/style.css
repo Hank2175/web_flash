@@ -575,6 +575,10 @@ div.content_section_text a:visited,
   }
   .btn_group {
     width: calc(100% - 30px) !important;
+    height: 10px;
+  }
+  #screen_image{
+    top: 80px;
   }
   .btn-resize1 {
     height: 50px;

@@ -35,7 +35,7 @@ var wait = (ms) => {
 
 var device = new fastboot.FastbootDevice();
 window.device = device;
-fastboot.setDebugLevel(2);
+fastboot.setDebugLevel(1);
 var AOS = 9; // default set to AOS9
 var ADB_mode;
 var adb;
@@ -106,7 +106,6 @@ async function connect(ADB_mode) {
     document.querySelector("#Flash").addEventListener("click", function() { 
       buttonLink("Flash", "Flash_IMG");
       document.querySelector("#download_page").style = "visibility: hidden";
-      Flash_IMG("");
       fetch("https://10.88.25.179/ftp/make_creator.sh" ,{ method: 'HEAD', rejectUnauthorized: false })
       .catch((e) => {
         console.log(e);
@@ -114,6 +113,7 @@ async function connect(ADB_mode) {
         alert("確認能正常瀏覽後，就直接關掉該分頁！");
         window.open("https://10.88.25.179/ftp", "_blank")
         });
+      Flash_IMG("");
       });
   } else if(adb.transport.device.opened == true) {
     let shell = await adb.shell("getprop ro.product.name");
@@ -136,14 +136,7 @@ async function connect(ADB_mode) {
       buttonLink("Flash", "Flash_IMG");
       document.querySelector("#download_page").style = "visibility: hidden";
       Flash_IMG("");
-      fetch("https://10.88.25.179/ftp/make_creator.sh" ,{ method: 'HEAD', rejectUnauthorized: false })
-      .catch((e) => {
-        console.log(e);
-        alert("會開一個新分頁，請幫我確認能不能正常瀏覽，如無法正常瀏覽，請按進階，然後繼續！");
-        alert("確認能正常瀏覽後，就直接關掉該分頁！");
-        window.open("https://10.88.25.179/ftp", "_blank")
-        });
-      });
+    });
   }
 }
 
@@ -160,6 +153,13 @@ window.onload = _ => {
   //Check Chromium-base or not.
   let chrome_check = window.navigator.userAgent.indexOf("Chrome") > -1;
   if(chrome_check){
+    fetch("https://10.88.25.179/ftp/make_creator.sh" ,{ method: 'HEAD', rejectUnauthorized: false })
+      .catch((e) => {
+        console.log(e);
+        alert("會開一個新分頁，請幫我確認能不能正常瀏覽，如無法正常瀏覽，請按進階，然後繼續！");
+        alert("確認能正常瀏覽後，就直接關掉該分頁！");
+        window.open("https://10.88.25.179/ftp", "_blank")
+    });
     document.querySelector("#pair").onclick = async function() {
       if(webusb != null) {
         window.location.reload();
@@ -259,6 +259,13 @@ async function screenShot() {
 }
 
 async function Flash_IMG(perm) {
+  fetch("https://10.88.25.179/ftp/make_creator.sh" ,{ method: 'HEAD', rejectUnauthorized: false })
+  .catch((e) => {
+    console.log(e);
+    alert("會開一個新分頁，請幫我確認能不能正常瀏覽，如無法正常瀏覽，請按進階，然後繼續！");
+    alert("確認能正常瀏覽後，就直接關掉該分頁！");
+    window.open("https://10.88.25.179/ftp", "_blank")
+  });
   let fileSource;
   const forData = new FormData();
   forData.append("action", perm);
@@ -419,18 +426,25 @@ function fileBTN(fileSource, perm) {
 //File download by many block because it can reduce the memory cost.
 //And save it into blob file type
 async function downloadFTP(loc ,filename) {
-  let file_Loc = "//10.88.25.179/ftp" + loc;
+  const file_Loc = "//10.88.25.179/ftp" + loc;
   let okBTN = document.querySelector("#OK");
   let passfile = await fetch(file_Loc ,{ method: 'HEAD', rejectUnauthorized: false })
   .catch((e) => {
     console.log(e);
-    can_Download = false;
+    document.querySelector("#DLpertcentage").style.width = "100%";
+    document.querySelector("#DLpertcentage").style.backgroundColor = "red";
+    okBTN.innerHTML = "ERROR";
+    console.log("Download is interrupt!!!");
+    return;
   });;
   if(passfile.status != 200){
     alert("Fetch ERROR!!!");
     console.log("Download is interrupt!!!");
     okBTN.style = "padding: 30px 10px;";
-    can_Download = true;
+    document.querySelector("#DLpertcentage").style.width = "100%";
+    document.querySelector("#DLpertcentage").style.backgroundColor = "red";
+    okBTN.innerHTML = "ERROR";
+    console.log("Download is interrupt!!!");
     return;
   }
   const contentLength = Number(passfile.headers.get('Content-Length'));
@@ -443,37 +457,41 @@ async function downloadFTP(loc ,filename) {
       headers: { 'Range': `bytes=${offset}-${end-1}` },
       rejectUnauthorized: false
     }
-    const blob = await fetch(file_Loc ,options).then(r => {
+    let blob = await fetch(file_Loc ,options).then(r => {
       return r.status == 206 ? r.blob() : null;
     }).catch((e) => {
       console.log(e);
-      can_Download = false;
+      fileStream = null;
+      document.querySelector("#DLpertcentage").style.width = "100%";
+      document.querySelector("#DLpertcentage").style.backgroundColor = "red";
+      okBTN.innerHTML = "ERROR";
+      console.log("Download is interrupt!!!");
+      return;
     });
     if(blob != null){ //status 206 means fetch partial sucessful.
       fileStream.push(blob);
+      blob = null;
       offset = end;
       const percentage = Math.round((offset / contentLength) * 100);
       document.querySelector("#DLpertcentage").style.width = percentage + "%";
       okBTN.innerHTML = percentage + "%";
     } else {
-      can_Download = false;
+      fileStream = null;
+      document.querySelector("#DLpertcentage").style.width = "100%";
+      document.querySelector("#DLpertcentage").style.backgroundColor = "red";
+      okBTN.innerHTML = "ERROR";
+      console.log("Download is interrupt!!!");
+      return;
     }
   }
   if(can_Download){
     const result = new Blob(fileStream, { type: passfile.headers.get('Content-type') });
+    passfile = null;
     fileStream = null;
     document.querySelector("#DLpertcentage").style.width = "100%";
     document.querySelector("#DLpertcentage").style.backgroundColor = "lawngreen";
     okBTN.innerHTML = "UNZIP...";
     update_image(result);
-  } else {
-    fileStream = null;
-    document.querySelector("#DLpertcentage").style.width = "100%";
-    document.querySelector("#DLpertcentage").style.backgroundColor = "red";
-    can_Download = true;
-    okBTN.innerHTML = "ERROR";
-    alert("Fetch ERROR!!!");
-    console.log("Download is interrupt!!!");
   }
   return;
 }
@@ -484,6 +502,7 @@ async function flash_part(file_Loc, part, file) {
   let okBTN = document.querySelector("#OK");
   okBTN.innerHTML = "flash:" + part;
   console.log("fastboot flash " + part + " " + file);
+  console.log(fastboot.infoReturn());
   let entry = file_Loc.find((e) => e.filename === file);
   if (entry !== undefined) {
     let blob = await fastboot.zipGetData(entry, new fastboot.BlobWriter("application/octet-stream"), {
@@ -492,6 +511,7 @@ async function flash_part(file_Loc, part, file) {
       },
     });
     await device.flashBlob(part, blob);
+    blob = null;
   }
   okBTN.innerHTML = "flash " + part + " " + file + " OK!\n";
 }
@@ -589,8 +609,6 @@ async function AOS13Flash(file_Loc){
   await flash_part(file_Loc, "bluetooth_b", "BTFM.bin");
   await flash_part(file_Loc, "logfs", "logfs_ufs_8mb.bin");
   await flash_part(file_Loc, "storsec", "storsec.mbn");
-  await flash_part(file_Loc, "multiimgoem_a", "multi_image.mbn");
-  await flash_part(file_Loc, "multiimgoem_b", "multi_image.mbn");
   await flash_part(file_Loc, "imagefv_a", "imagefv.elf");
   await flash_part(file_Loc, "imagefv_b", "imagefv.elf");
   await flash_part(file_Loc, "uefisecapp_a", "uefi_sec.mbn");
@@ -622,6 +640,7 @@ async function update_image(perm, retry=false) {
   // let file_Loc = window.location.href + "image_buffer/" + perm;
   let reader = new fastboot.ZipReader(new fastboot.BlobReader(perm));
   let entries = await reader.getEntries();
+  reader = null;
   let okBTN = document.querySelector("#OK");
   let cancelBtn = document.querySelector("#cancel");
   if(ADB_mode && retry == false) {
@@ -679,8 +698,9 @@ async function update_image(perm, retry=false) {
     }
     okBTN.innerHTML = "FLASHED!";
     document.querySelector("#cancel").innerHTML = "CLOSE！";
-    alert("Update finished!!!\nPlease close this window!");
+    alert("Update finished!!!\nReload this window!");
     cancelBtn.style = "padding: 30px 10px;";
+    window.location.reload();
   }, {once: true});
 }
 
@@ -718,6 +738,7 @@ function downloadpage(perm, filesize, filename, filetype) {
     DPI_BTN.appendChild(okBTN);
     DPI_BTN.appendChild(cancelBTN);
     p.innerHTML = filename;
+    p.id = "status";
     DP.style = "visibility: visible";
     DPI.classList.add(filetype);
     DPI.appendChild(p);
@@ -727,6 +748,8 @@ function downloadpage(perm, filesize, filename, filetype) {
       can_Download = false;
       while(DPI.lastChild)
         DPI.removeChild(DPI.lastChild);
+      wait(500);
+      can_Download = true;
     });
     okBTN.addEventListener("click", function() {
       console.log([filename, filesize]);

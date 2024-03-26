@@ -1,3 +1,15 @@
+var logMessage = '';
+
+var originalLog = console.log;
+console.log = function() {
+    logMessage = Array.from(arguments).join(' ');
+    originalLog.apply(console, arguments);
+};
+
+function infoReturn(){
+	return logMessage;
+}
+
 var DebugLevel;
 (function (DebugLevel) {
     DebugLevel[DebugLevel["Silent"] = 0] = "Silent";
@@ -8549,6 +8561,7 @@ class FastbootDevice {
         let fileHeader = await readBlobAsBuffer(blob.slice(0, FILE_HEADER_SIZE));
         let totalBytes = blob.size;
         let isSparse = false;
+		let p_status = document.querySelector('#status');
         try {
             let sparseHeader = parseFileHeader(fileHeader);
             if (sparseHeader !== null) {
@@ -8570,6 +8583,7 @@ class FastbootDevice {
         }
         // Convert image to sparse (for splitting) if it exceeds the size limit
         if (blob.size > maxDlSize && !isSparse) {
+			p_status.innerHTML = `${partition} image is raw, converting to sparse`;
             logDebug(`${partition} image is raw, converting to sparse`);
             // Assume that non-sparse images will always be small enough to convert in RAM.
             // The buffer is converted to a Blob for compatibility with the existing flashing code.
@@ -8577,6 +8591,7 @@ class FastbootDevice {
             let sparse = fromRaw(rawData);
             blob = new Blob([sparse]);
         }
+		p_status.innerHTML = `Flashing ${blob.size} bytes to ${partition}, ${maxDlSize} bytes per split`;
         logDebug(`Flashing ${blob.size} bytes to ${partition}, ${maxDlSize} bytes per split`);
         let splits = 0;
         let sentBytes = 0;
@@ -8589,6 +8604,7 @@ class FastbootDevice {
             splits += 1;
             sentBytes += split.bytes;
         }
+		p_status.innerHTML = `Flashed ${partition} with ${splits} split(s)`;
         logDebug(`Flashed ${partition} with ${splits} split(s)`);
     }
     /**
@@ -8624,5 +8640,5 @@ class FastbootDevice {
 }
 
 export { FastbootDevice, FastbootError, TimeoutError, USER_ACTION_MAP, UsbError, configure as configureZip, setDebugLevel };
-export { ZipReader, ZipEntry, BlobReader, BlobWriter, zipGetData};
+export { ZipReader, ZipEntry, BlobReader, BlobWriter, zipGetData, infoReturn};
 //# sourceMappingURL=fastboot.mjs.map
