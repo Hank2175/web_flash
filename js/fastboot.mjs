@@ -1,15 +1,3 @@
-var logMessage = '';
-
-var originalLog = console.log;
-console.log = function() {
-    logMessage = Array.from(arguments).join(' ');
-    originalLog.apply(console, arguments);
-};
-
-function infoReturn(){
-	return logMessage;
-}
-
 var DebugLevel;
 (function (DebugLevel) {
     DebugLevel[DebugLevel["Silent"] = 0] = "Silent";
@@ -46,6 +34,7 @@ function setDebugLevel(level) {
  * @ignore
  */
 function readBlobAsBuffer(blob) {
+	document.querySelector('#status').innerHTML = `readBlobAsBuffer`;
     return new Promise((resolve, reject) => {
         let reader = new FileReader();
         reader.onload = () => {
@@ -266,6 +255,8 @@ function fromRaw(rawBuffer) {
  * @yields {Object} Data of the next split image and its output size in bytes.
  */
 async function* splitBlob(blob, splitSize) {
+	let p_status = document.querySelector('#status');
+	p_status.innerHTML = `Splitting ${blob.size}-byte sparse image into ${splitSize}-byte chunks`;
     logDebug(`Splitting ${blob.size}-byte sparse image into ${splitSize}-byte chunks`);
     // Short-circuit if splitting isn't required
     if (blob.size <= splitSize) {
@@ -292,7 +283,8 @@ async function* splitBlob(blob, splitSize) {
         chunk.data = await readBlobAsBuffer(blob.slice(CHUNK_HEADER_SIZE, CHUNK_HEADER_SIZE + chunk.dataBytes));
         blob = blob.slice(CHUNK_HEADER_SIZE + chunk.dataBytes);
         let bytesRemaining = splitSize - calcChunksSize(splitChunks);
-        logVerbose(`  Chunk ${i}: type ${chunk.type}, ${chunk.dataBytes} bytes / ${chunk.blocks} blocks, ${bytesRemaining} bytes remaining`);
+        p_status.innerHTML = `Chunk ${i}: type ${chunk.type}, ${chunk.dataBytes} bytes / ${chunk.blocks} blocks, ${bytesRemaining} bytes remaining`;
+		logVerbose(`  Chunk ${i}: type ${chunk.type}, ${chunk.dataBytes} bytes / ${chunk.blocks} blocks, ${bytesRemaining} bytes remaining`);
         if (bytesRemaining >= chunk.dataBytes) {
             // Read the chunk and add it
             logVerbose("    Space is available, adding chunk");
@@ -313,6 +305,7 @@ async function* splitBlob(blob, splitSize) {
             });
             logVerbose(`Partition is ${header.blocks} blocks, used ${splitBlocks}, padded with ${header.blocks - splitBlocks}, finishing split with ${calcChunksBlockSize(splitChunks)} blocks`);
             let splitImage = createImage(header, splitChunks);
+			p_status.innerHTML = `Finished ${splitImage.byteLength}-byte split with ${splitChunks.length} chunks`;
             logDebug(`Finished ${splitImage.byteLength}-byte split with ${splitChunks.length} chunks`);
             yield {
                 data: splitImage,
@@ -7397,7 +7390,9 @@ async function processData(codec, reader, writer, offset, inputLength, config, o
 
 	async function processChunk(chunkOffset = 0, outputLength = 0) {
 		const signal = options.signal;
+		let p_status = document.querySelector('#status');
 		if (chunkOffset < inputLength) {
+			p_status.innerHTML = `ZIP parsing: ${chunkOffset}/${inputLength}.`;
 			testAborted(signal);
 			const inputData = await reader.readUint8Array(chunkOffset + offset, Math.min(chunkSize, inputLength - chunkOffset));
 			const chunkLength = inputData.length;
@@ -7414,6 +7409,7 @@ async function processData(codec, reader, writer, offset, inputLength, config, o
 			}
 			return processChunk(chunkOffset + chunkSize, outputLength);
 		} else {
+			p_status.innerHTML = `ZIP parsed!`;
 			const result = await codec.flush();
 			outputLength += await writeData(writer, result.data);
 			return { signature: result.signature, length: outputLength };
@@ -8155,10 +8151,10 @@ const FASTBOOT_USB_CLASS = 0xff;
 const FASTBOOT_USB_SUBCLASS = 0x42;
 const FASTBOOT_USB_PROTOCOL = 0x03;
 const BULK_TRANSFER_SIZE = 16384;
-const DEFAULT_DOWNLOAD_SIZE = 512 * 1024 * 1024; // 512 MiB
+const DEFAULT_DOWNLOAD_SIZE = 16 * 1024 * 1024; // 16 MiB
 // To conserve RAM and work around Chromium's ~2 GiB size limit, we limit the
 // max download size even if the bootloader can accept more data.
-const MAX_DOWNLOAD_SIZE = 1024 * 1024 * 1024; // 1 GiB
+const MAX_DOWNLOAD_SIZE = 64 * 1024 * 1024; // 64 MiB
 const GETVAR_TIMEOUT = 10000; // ms
 /**
  * Exception class for USB errors not directly thrown by WebUSB.
@@ -8556,12 +8552,12 @@ class FastbootDevice {
         if ((await this.getVariable(`has-slot:${partition}`)) === "yes") {
             partition += "_" + (await this.getVariable("current-slot"));
         }
+		let p_status = document.querySelector('#status');
         let maxDlSize = await this._getDownloadSize();
-		maxDlSize /= 2;
+		console.log(`max download size: ${maxDlSize}`);
         let fileHeader = await readBlobAsBuffer(blob.slice(0, FILE_HEADER_SIZE));
         let totalBytes = blob.size;
         let isSparse = false;
-		let p_status = document.querySelector('#status');
         try {
             let sparseHeader = parseFileHeader(fileHeader);
             if (sparseHeader !== null) {
@@ -8583,12 +8579,12 @@ class FastbootDevice {
         }
         // Convert image to sparse (for splitting) if it exceeds the size limit
         if (blob.size > maxDlSize && !isSparse) {
-			p_status.innerHTML = `${partition} image is raw, converting to sparse`;
             logDebug(`${partition} image is raw, converting to sparse`);
             // Assume that non-sparse images will always be small enough to convert in RAM.
             // The buffer is converted to a Blob for compatibility with the existing flashing code.
             let rawData = await readBlobAsBuffer(blob);
             let sparse = fromRaw(rawData);
+			rawData = null;
             blob = new Blob([sparse]);
         }
 		p_status.innerHTML = `Flashing ${blob.size} bytes to ${partition}, ${maxDlSize} bytes per split`;
@@ -8604,7 +8600,6 @@ class FastbootDevice {
             splits += 1;
             sentBytes += split.bytes;
         }
-		p_status.innerHTML = `Flashed ${partition} with ${splits} split(s)`;
         logDebug(`Flashed ${partition} with ${splits} split(s)`);
     }
     /**
@@ -8640,5 +8635,5 @@ class FastbootDevice {
 }
 
 export { FastbootDevice, FastbootError, TimeoutError, USER_ACTION_MAP, UsbError, configure as configureZip, setDebugLevel };
-export { ZipReader, ZipEntry, BlobReader, BlobWriter, zipGetData, infoReturn};
+export { ZipReader, ZipEntry, BlobReader, BlobWriter, zipGetData};
 //# sourceMappingURL=fastboot.mjs.map
