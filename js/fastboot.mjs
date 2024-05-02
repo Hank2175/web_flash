@@ -134,6 +134,8 @@ var ChunkType;
  * @returns {SparseHeader} Object containing the header information.
  */
 function parseFileHeader(buffer) {
+	let p_status = document.querySelector('#status');
+	p_status.innerHTML = `parseFileHeader`;
     let view = new DataView(buffer);
     let magic = view.getUint32(0, true);
     if (magic !== FILE_MAGIC) {
@@ -155,6 +157,7 @@ function parseFileHeader(buffer) {
     if (blockSize % 4 !== 0) {
         throw new ImageError(`Block size ${blockSize} is not a multiple of 4`);
     }
+	p_status.innerHTML = `blockSize("${blockSize}")`;
     return {
         blockSize: blockSize,
         blocks: view.getUint32(16, true),
@@ -190,6 +193,8 @@ function calcChunksSize(chunks) {
     return overhead + calcChunksDataSize(chunks);
 }
 function createImage(header, chunks) {
+	let p_status = document.querySelector('#status');
+	p_status.innerHTML = `fromRaw`;
     let buffer = new ArrayBuffer(calcChunksSize(chunks));
     let dataView = new DataView(buffer);
     let arrayView = new Uint8Array(buffer);
@@ -227,6 +232,8 @@ function createImage(header, chunks) {
  * @returns {ArrayBuffer} Buffer containing the new sparse image.
  */
 function fromRaw(rawBuffer) {
+	let p_status = document.querySelector('#status');
+	p_status.innerHTML = `fromRaw`;
     let header = {
         blockSize: 4096,
         blocks: rawBuffer.byteLength / 4096,
@@ -236,6 +243,7 @@ function fromRaw(rawBuffer) {
     let chunks = [];
     while (rawBuffer.byteLength > 0) {
         let chunkSize = Math.min(rawBuffer.byteLength, RAW_CHUNK_SIZE);
+		p_status.innerHTML = `Push ${chunkSize} into chunks ${chunks.length}`;
         chunks.push({
             type: ChunkType.Raw,
             blocks: chunkSize / header.blockSize,
@@ -8579,6 +8587,7 @@ class FastbootDevice {
         }
         // Convert image to sparse (for splitting) if it exceeds the size limit
         if (blob.size > maxDlSize && !isSparse) {
+			p_status.innerHTML = `${partition} image is raw, converting to sparse`;
             logDebug(`${partition} image is raw, converting to sparse`);
             // Assume that non-sparse images will always be small enough to convert in RAM.
             // The buffer is converted to a Blob for compatibility with the existing flashing code.
@@ -8601,22 +8610,6 @@ class FastbootDevice {
             sentBytes += split.bytes;
         }
         logDebug(`Flashed ${partition} with ${splits} split(s)`);
-    }
-    /**
-     * Boot the given Blob on the device.
-     * Equivalent to `fastboot boot boot.img`.
-     *
-     * @param {Blob} blob - The Blob to retrieve data from.
-     * @param {FlashProgressCallback} onProgress - Callback for flashing progress updates.
-     * @throws {FastbootError}
-     */
-    async bootBlob(blob, onProgress = (_progress) => { }) {
-        logDebug(`Booting ${blob.size} bytes image`);
-        let data = await readBlobAsBuffer(blob);
-        await this.upload("boot.img", data, onProgress);
-        logDebug("Booting payload...");
-        await this.runCommand("boot");
-        logDebug(`Booted ${blob.size} bytes image`);
     }
     /**
      * Flash the given factory images zip onto the device, with automatic handling

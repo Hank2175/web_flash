@@ -474,6 +474,11 @@ div.content_section_text a:visited,
   backdrop-filter: blur(5px);
 }
 
+#upload_IMG #download_page {
+  position: relative;
+  background-color: transparent;
+}
+
 #download_page .download_page_index{
   position: absolute;
   top: 50%;
@@ -487,6 +492,11 @@ div.content_section_text a:visited,
   background-position-y: 15px;
   background-size: 200px;
   background-repeat: no-repeat;
+}
+
+#upload_IMG #download_page .download_page_index{
+  width: 90%;
+  height: 80%
 }
 
 #download_page .file{

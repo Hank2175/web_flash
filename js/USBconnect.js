@@ -99,10 +99,8 @@ async function connect(ADB_mode) {
         AOS = 13;
       }
     }
-    const open = document.querySelectorAll("#Flash");
-      open.forEach((x) => {
-        x.className="notdisabled";
-      });
+    document.querySelector("#Flash").className="notdisabled";
+    document.querySelector("#upload_Flash").className="notdisabled";
     document.querySelector("#Flash").addEventListener("click", function() { 
       buttonLink("Flash", "Flash_IMG");
       document.querySelector("#download_page").style = "visibility: hidden";
@@ -114,7 +112,11 @@ async function connect(ADB_mode) {
         window.open("https://10.88.25.179/ftp", "_blank")
         });
       Flash_IMG("");
-      });
+    });
+    document.querySelector("#upload_Flash").addEventListener("click", function() {
+      buttonLink("upload_Flash", "upload_IMG");
+      upload_image();
+    });
   } else if(adb.transport.device.opened == true) {
     let shell = await adb.shell("getprop ro.product.name");
     let get = await shell.receive();
@@ -135,7 +137,18 @@ async function connect(ADB_mode) {
     document.querySelector("#Flash").addEventListener("click", function() { 
       buttonLink("Flash", "Flash_IMG");
       document.querySelector("#download_page").style = "visibility: hidden";
+      fetch("https://10.88.25.179/ftp/make_creator.sh" ,{ method: 'HEAD', rejectUnauthorized: false })
+      .catch((e) => {
+        console.log(e);
+        alert("會開一個新分頁，請幫我確認能不能正常瀏覽，如無法正常瀏覽，請按進階，然後繼續！");
+        alert("確認能正常瀏覽後，就直接關掉該分頁！");
+        window.open("https://10.88.25.179/ftp", "_blank")
+        });
       Flash_IMG("");
+    });
+    document.querySelector("#upload_Flash").addEventListener("click", function() {
+      buttonLink("upload_Flash", "upload_IMG");
+      upload_image();
     });
   }
 }
@@ -491,6 +504,12 @@ async function downloadFTP(loc ,filename) {
   }
   if(can_Download){
     const result = new Blob(fileStream, { type: passfile.headers.get('Content-type') });
+    let a = document.createElement("a");
+    wait(300);
+    a.href = await URL.createObjectURL(result);
+    a.download = filename;
+    alert("將會下載image 到你的下載路徑作為備份，如寫完device後不需要，請自行移除！")
+    a.click();
     passfile = null;
     fileStream = null;
     document.querySelector("#DLpertcentage").style.width = "100%";
@@ -663,12 +682,12 @@ async function update_image(perm, retry=false) {
     alert("Please comfirm that you select correct device for image update!");
     alert("If you make a wrong selection, it would make your device malfunction!");
   }
-  okBTN.style = "padding: 30px 10px; line-height: 90%;";
+  okBTN.style = "padding: 30px 10px; line-height: 90%; left: 50%;";
   okBTN.innerHTML = "FLASH " + serialNumber_backup;
   okBTN.addEventListener("click", async function() {
     // console.log(file_Loc);
-    okBTN.style = "pointer-events: none; padding: 30px 10px; line-height: 90%;";
-    cancelBtn.style = "pointer-events: none; padding: 30px 10px;";
+    okBTN.style = "pointer-events: none; padding: 30px 10px; line-height: 90%; left: 50%;";
+    cancelBtn.style = "pointer-events: none; padding: 30px 10px; visibility: hidden;";
     wait(300);
     okBTN.innerHTML = "Flashing...";
     if(ADB_mode) {
@@ -696,7 +715,7 @@ async function update_image(perm, retry=false) {
     document.querySelector("#DLpertcentage").style.width = "0%";
     document.querySelector("#DLpertcentage").style.backgroundColor = "bisque";
     let part = await device.getVariable("partition-type:super");//AOS10?
-    if(part === null && AOS == 9){//AOS9
+    if(part === null){//AOS9
       console.log("AOS9");
       await AOS9Flash(entries);
     } else { //AOS10 or 13
@@ -775,4 +794,38 @@ function downloadpage(perm, filesize, filename, filetype) {
   } else {
     alert("選錯project或是檔案！");
   }
+}
+
+function upload_image(){
+  console.log("upload_image");
+  const uploader = document.createElement("input");
+  let UploadBTN = document.querySelector("#OK");
+  let img_file;
+  uploader.type="file";
+  uploader.id="uploader"
+  uploader.setAttribute("accept", ".zip");
+  uploader.setAttribute("accept", ".zip");
+  UploadBTN.addEventListener("click", function() { 
+    uploader.click();
+    uploader.addEventListener("change", async function(result) {
+      if(result.target.files[0]){
+        img_file = result.target.files[0];
+        let reader = new fastboot.ZipReader(new fastboot.BlobReader(img_file));
+        let entries = await reader.getEntries();
+        // console.log(entries);
+        let entry = entries.find((e) => e.filename === "boot.img");
+        if (entry !== undefined) { //right file select
+          document.querySelector("#status").innerHTML = img_file.name;
+          document.querySelector("#OK").innerHTML = "Flash";
+          UploadBTN.replaceWith(UploadBTN.cloneNode(true));
+          await update_image(img_file);
+
+        } else {
+          document.querySelector("#status").innerHTML = "Wrong file selection!!!"
+          UploadBTN.replaceWith(UploadBTN.cloneNode(true));
+          return upload_image();
+        }
+      }
+    });
+  });
 }
