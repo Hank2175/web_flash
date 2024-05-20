@@ -164,6 +164,7 @@ function Uint8toStr(filedata) {
 
 window.onload = _ => {
   //Check Chromium-base or not.
+  console.log(window.navigator.userAgent);
   let chrome_check = window.navigator.userAgent.indexOf("Chrome") > -1;
   if(chrome_check){
     fetch("https://10.88.25.179/ftp/make_creator.sh" ,{ method: 'HEAD', rejectUnauthorized: false })
@@ -258,15 +259,17 @@ async function getDEVinfo() {
 async function screenShot() {
   console.log("ScreenShot!!!");
   document.querySelector("#screen_image").src = "";
-  console.log(await adb.shell("screencap -p /sdcard/1.png"));
-  wait(1200);
+  console.log(await adb.shell("screencap -p /storage/emulated/0/1.png"));
+  wait(1000);
   let sync = await adb.sync();
+  wait(800);
+  let content = await sync.pull("/storage/emulated/0/1.png");
   wait(300);
-  let content = await sync.pull("/sdcard/1.png");
   console.log(await sync.quit());
   let a = document.getElementById("DWPIC");
-  wait(300);
-  a.href = await URL.createObjectURL(new Blob([content], {type: 'image/png'}));
+  const pic = new Blob([content], {type: 'image/png'});
+  wait(400);
+  a.href = await URL.createObjectURL(pic);
   a.download = "screenshot.png";
   document.querySelector("#screen_image").src = a.href;
 }
@@ -805,7 +808,7 @@ function upload_image(){
   uploader.id="uploader"
   uploader.setAttribute("accept", ".zip");
   uploader.setAttribute("accept", ".zip");
-  UploadBTN.addEventListener("click", function() { 
+  UploadBTN.addEventListener("click", function() {
     uploader.click();
     uploader.addEventListener("change", async function(result) {
       if(result.target.files[0]){
