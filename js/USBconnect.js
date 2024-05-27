@@ -50,10 +50,8 @@ function showDevice(serial, proName, ADBorFastboot) {
   while(myNode.firstChild) {
     myNode.removeChild(myNode.lastChild);
   }
-
   let h5 = document.createElement("h5");
-  let mode = ADBorFastboot?" (ADB)":" (Fastboot)";
-  h5.appendChild(document.createTextNode(proName + mode));
+  h5.appendChild(document.createTextNode(proName + ADBorFastboot));
   myNode.appendChild(h5);
   let p = document.createElement("p");
   p.appendChild(document.createTextNode("Serial No: " + serial));
@@ -189,12 +187,13 @@ window.onload = _ => {
           let get = await shell.receive();
           let proName = Uint8toStr(get.data);
           check_proName = proName.slice(0, proName.length - 1);
-          showDevice(webusb.device.serialNumber, proName, true);
+          showDevice(webusb.device.serialNumber, proName, " (ADB)");
         } else if (webusb.isFastboot()) {
           device.device = webusb.device;
           await device._validateAndConnectDevice();
           ADB_mode = false;
-          showDevice(webusb.device.serialNumber, "Android", false);
+          check_proName = "Android";
+          showDevice(webusb.device.serialNumber, "Android", " (Fastboot)");
         }
         serialNumber_backup = webusb.device.serialNumber;
         
@@ -363,6 +362,8 @@ function fileBTN(fileSource, perm) {
       dir_link.appendChild(a1);
     }
   } else {
+    // console.log(check_proName);
+    //console.log(dirP.peek());
     let a = document.createElement("a");
     a.classList.add("filelink");
     a.textContent="上一頁";
@@ -422,18 +423,24 @@ function fileBTN(fileSource, perm) {
         insert.appendChild(div);
       }
     } else if (fileSource[key].type == "dir") {
-      let a = document.createElement("a");
-      a.classList.add("filelink");
-      a.textContent = fileSource[key].name;
-      let div = document.createElement("div");
-      div.classList.add("files", "folder");
-      div.appendChild(a);
-      div.addEventListener("click", function() {
-        console.log("Go to " + a.textContent);
-        dirP.push(a.textContent);
-        Flash_IMG(perm + "/" + fileSource[key].name);
-      });
-      insert.appendChild(div);
+      if((dirP.peek() == "Project_Release" || dirP.peek() == "Dailybuild") && 
+        fileSource[key].name.indexOf(check_proName) == -1 && 
+        check_proName.indexOf("Android") == -1){
+        console.log("Not correct project(" + fileSource[key].name + ")!");
+      } else {
+        let a = document.createElement("a");
+        a.classList.add("filelink");
+        a.textContent = fileSource[key].name;
+        let div = document.createElement("div");
+        div.classList.add("files", "folder");
+        div.appendChild(a);
+        div.addEventListener("click", function() {
+          console.log("Go to " + a.textContent);
+          dirP.push(a.textContent);
+          Flash_IMG(perm + "/" + fileSource[key].name);
+        });
+        insert.appendChild(div);
+      }
     } 
   });
 }
