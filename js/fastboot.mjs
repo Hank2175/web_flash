@@ -7400,7 +7400,8 @@ async function processData(codec, reader, writer, offset, inputLength, config, o
 		const signal = options.signal;
 		let p_status = document.querySelector('#status');
 		if (chunkOffset < inputLength) {
-			p_status.innerHTML = `ZIP parsing: ${chunkOffset}/${inputLength}.`;
+			let percentage = Math.round((chunkOffset/inputLength)*100);
+			p_status.innerHTML = `ZIP parsing: ${percentage}%`;
 			testAborted(signal);
 			const inputData = await reader.readUint8Array(chunkOffset + offset, Math.min(chunkSize, inputLength - chunkOffset));
 			const chunkLength = inputData.length;

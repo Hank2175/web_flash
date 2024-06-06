@@ -446,7 +446,7 @@ function fileBTN(fileSource, perm) {
 }
 
 
-//File download by many block because it can reduce the memory cost.
+//File download by many blocks because it can reduce the memory cost.
 //And save it into blob file type
 async function downloadFTP(loc ,filename) {
   const file_Loc = "//10.88.25.179/ftp" + loc;
@@ -475,7 +475,7 @@ async function downloadFTP(loc ,filename) {
   }
   const contentLength = Number(passfile.headers.get('Content-Length'));
   let fileStream = [];
-  const CHUNK_SIZE = 1024*1024*10;
+  const CHUNK_SIZE = 1024*1024*30;
   let offset = 0;
   while(offset < contentLength && can_Download){
     const end = Math.min(offset + CHUNK_SIZE, contentLength);
@@ -692,7 +692,7 @@ async function update_image(perm, retry=false) {
     alert("Please comfirm that you select correct device for image update!");
     alert("If you make a wrong selection, it would make your device malfunction!");
   }
-  okBTN.style = "padding: 30px 10px; line-height: 90%; left: 50%;";
+  okBTN.style = "padding: 30px 10px; line-height: 90%;";
   okBTN.innerHTML = "FLASH " + serialNumber_backup;
   okBTN.addEventListener("click", async function() {
     // console.log(file_Loc);
@@ -756,7 +756,7 @@ async function update_image(perm, retry=false) {
 function downloadpage(perm, filesize, filename, filetype) {
   if(!filename.includes("OTA") && !filename.includes("QFIL") &&
      !filename.includes("kernel") && !filename.includes("target") &&
-     (perm.includes(check_proName) || check_proName=="")){ // Simple distinguishment
+     (perm.includes(check_proName) || check_proName=="Android")){ // Simple distinguishment
     let DP = document.querySelector("#download_page");
     let DPI = document.querySelector("#download_page_index");
 
@@ -814,7 +814,6 @@ function upload_image(){
   uploader.type="file";
   uploader.id="uploader"
   uploader.setAttribute("accept", ".zip");
-  uploader.setAttribute("accept", ".zip");
   UploadBTN.addEventListener("click", function() {
     uploader.click();
     uploader.addEventListener("change", async function(result) {
@@ -827,6 +826,7 @@ function upload_image(){
         if (entry !== undefined) { //right file select
           document.querySelector("#status").innerHTML = img_file.name;
           document.querySelector("#OK").innerHTML = "Flash";
+          document.querySelector("#OK").style = "pointer-events: none; padding: 30px 10px; line-height: 90%; left: 50%;";
           UploadBTN.replaceWith(UploadBTN.cloneNode(true));
           await update_image(img_file);
 
