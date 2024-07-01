@@ -114,7 +114,7 @@ const MINOR_VERSION = 0;
 const FILE_HEADER_SIZE = 28;
 const CHUNK_HEADER_SIZE = 12;
 // AOSP libsparse uses 64 MiB chunks
-const RAW_CHUNK_SIZE = 64 * 1024 * 1024;
+const RAW_CHUNK_SIZE = 128 * 1024 * 1024;//???
 class ImageError extends Error {
     constructor(message) {
         super(message);
@@ -232,7 +232,7 @@ function createImage(header, chunks) {
  * @param {ArrayBuffer} rawBuffer - Buffer containing the raw image data.
  * @returns {ArrayBuffer} Buffer containing the new sparse image.
  */
-function fromRaw(rawBuffer) {
+async function fromRaw(rawBuffer, partition) {
 	let p_status = document.querySelector('#status');
 	// p_status.innerHTML = `fromRaw ${rawBuffer.byteLength}`;
     let header = {
@@ -241,20 +241,30 @@ function fromRaw(rawBuffer) {
         chunks: 1,
         crc32: 0,
     };
-    let chunks = [];
+    // let chunks = [];
+	let sending;
     while (rawBuffer.size > 0) {
         let chunkSize = Math.min(rawBuffer.size, RAW_CHUNK_SIZE);
 		p_status.innerHTML = `Push ${chunkSize} into chunks ${chunks.length}`;
-        chunks.push({
-            type: ChunkType.Raw,
-            blocks: chunkSize / header.blockSize,
-			data: readBlobAsBuffer(rawBuffer.slice(0, chunkSize)),
-            // data: rawBuffer.slice(0, chunkSize),
+        // chunks.push({
+        //     type: ChunkType.Raw,
+        //     blocks: chunkSize / header.blockSize,
+		// 	data: readBlobAsBuffer(rawBuffer.slice(0, chunkSize)),
+        //     // data: rawBuffer.slice(0, chunkSize),
 			
-        });
+        // });
+		if (rawBuffer.size >= chunkSize) {
+			sending = readBlobAsBuffer(rawBuffer.slice(0, chunkSize));
+		} else {
+			sending = readBlobAsBuffer(rawBuffer);
+		}
+		await this.upload(partition, sending);
+		logDebug("Flashing payload...");
+		await this.runCommand(`flash:${partition}`);
         rawBuffer = rawBuffer.slice(chunkSize);
     }
-    return createImage(header, chunks);
+	return;
+    // return createImage(header, chunks);
 }
 /**
  * Split a sparse image into smaller sparse images within the given size.
@@ -7392,7 +7402,7 @@ function createCodec(codecConstructor, options, config) {
  EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-const MINIMUM_CHUNK_SIZE = 512;
+const MINIMUM_CHUNK_SIZE = 8192;
 const ERR_ABORT = "Abort error";
 
 async function processData(codec, reader, writer, offset, inputLength, config, options) {
@@ -7404,12 +7414,12 @@ async function processData(codec, reader, writer, offset, inputLength, config, o
 		let p_status = document.querySelector('#status');
 		if (chunkOffset < inputLength) {
 			let percentage = Math.round((chunkOffset/inputLength)*100);
-			p_status.innerHTML = `ZIP parsing: ${percentage}%`;
 			testAborted(signal);
 			const inputData = await reader.readUint8Array(chunkOffset + offset, Math.min(chunkSize, inputLength - chunkOffset));
 			const chunkLength = inputData.length;
 			testAborted(signal);
 			const data = await codec.append(inputData);
+			p_status.innerHTML = `ZIP parsing: ${percentage}%`;
 			testAborted(signal);
 			outputLength += await writeData(writer, data);
 			if (options.onprogress) {
@@ -8166,7 +8176,7 @@ const BULK_TRANSFER_SIZE = 16384;
 const DEFAULT_DOWNLOAD_SIZE = 16 * 1024 * 1024; // 16 MiB
 // To conserve RAM and work around Chromium's ~2 GiB size limit, we limit the
 // max download size even if the bootloader can accept more data.
-const MAX_DOWNLOAD_SIZE = 64 * 1024 * 1024; // 64 MiB
+const MAX_DOWNLOAD_SIZE = 128 * 1024 * 1024; // 64 MiB
 const GETVAR_TIMEOUT = 10000; // ms
 /**
  * Exception class for USB errors not directly thrown by WebUSB.
@@ -8603,7 +8613,8 @@ class FastbootDevice {
             // Assume that non-sparse images will always be small enough to convert in RAM.
             // The buffer is converted to a Blob for compatibility with the existing flashing code.
             // let rawData = await readBlobAsBuffer(blob);
-            let sparse = fromRaw(blob);
+            let sparse = await fromRaw(blob, partition);
+			return;
 			rawData = null;
             blob = new Blob([sparse]);
         }
