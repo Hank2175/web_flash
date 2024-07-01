@@ -33,8 +33,9 @@ function setDebugLevel(level) {
  * @returns {Promise<ArrayBuffer>} ArrayBuffer containing data from the blob.
  * @ignore
  */
-function readBlobAsBuffer(blob) {
-	document.querySelector('#status').innerHTML = `readBlobAsBuffer`;
+async function readBlobAsBuffer(blob) {
+	// MAX_DOWNLOAD_SIZE
+	document.querySelector('#status').innerHTML = `readBlobAsBuffer ${blob.size}`;
     return new Promise((resolve, reject) => {
         let reader = new FileReader();
         reader.onload = () => {
@@ -194,7 +195,7 @@ function calcChunksSize(chunks) {
 }
 function createImage(header, chunks) {
 	let p_status = document.querySelector('#status');
-	p_status.innerHTML = `fromRaw`;
+	p_status.innerHTML = `createImage`;
     let buffer = new ArrayBuffer(calcChunksSize(chunks));
     let dataView = new DataView(buffer);
     let arrayView = new Uint8Array(buffer);
@@ -233,21 +234,23 @@ function createImage(header, chunks) {
  */
 function fromRaw(rawBuffer) {
 	let p_status = document.querySelector('#status');
-	p_status.innerHTML = `fromRaw`;
+	// p_status.innerHTML = `fromRaw ${rawBuffer.byteLength}`;
     let header = {
         blockSize: 4096,
-        blocks: rawBuffer.byteLength / 4096,
+        blocks: rawBuffer.size / 4096,
         chunks: 1,
         crc32: 0,
     };
     let chunks = [];
-    while (rawBuffer.byteLength > 0) {
-        let chunkSize = Math.min(rawBuffer.byteLength, RAW_CHUNK_SIZE);
+    while (rawBuffer.size > 0) {
+        let chunkSize = Math.min(rawBuffer.size, RAW_CHUNK_SIZE);
 		p_status.innerHTML = `Push ${chunkSize} into chunks ${chunks.length}`;
         chunks.push({
             type: ChunkType.Raw,
             blocks: chunkSize / header.blockSize,
-            data: rawBuffer.slice(0, chunkSize),
+			data: readBlobAsBuffer(rawBuffer.slice(0, chunkSize)),
+            // data: rawBuffer.slice(0, chunkSize),
+			
         });
         rawBuffer = rawBuffer.slice(chunkSize);
     }
@@ -7389,7 +7392,7 @@ function createCodec(codecConstructor, options, config) {
  EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-const MINIMUM_CHUNK_SIZE = 64;
+const MINIMUM_CHUNK_SIZE = 512;
 const ERR_ABORT = "Abort error";
 
 async function processData(codec, reader, writer, offset, inputLength, config, options) {
@@ -8505,6 +8508,8 @@ class FastbootDevice {
      * @throws {FastbootError}
      */
     async upload(partition, buffer, onProgress = (_progress) => { }) {
+		let p_status = document.querySelector('#status');
+		p_status.innerHTML = `Uploading single sparse to ${partition}: ${buffer.byteLength} bytes`;
         logDebug(`Uploading single sparse to ${partition}: ${buffer.byteLength} bytes`);
         // Bootloader requires an 8-digit hex number
         let xferHex = buffer.byteLength.toString(16).padStart(8, "0");
@@ -8512,6 +8517,7 @@ class FastbootDevice {
             throw new FastbootError("FAIL", `Transfer size overflow: ${xferHex} is more than 8 digits`);
         }
         // Check with the device and make sure size matches
+		p_status.innerHTML = `download:${xferHex}`;
         let downloadResp = await this.runCommand(`download:${xferHex}`);
         if (downloadResp.dataSize === undefined) {
             throw new FastbootError("FAIL", `Unexpected response to download command: ${downloadResp.text}`);
@@ -8520,8 +8526,10 @@ class FastbootDevice {
         if (downloadSize !== buffer.byteLength) {
             throw new FastbootError("FAIL", `Bootloader wants ${buffer.byteLength} bytes, requested to send ${buffer.byteLength} bytes`);
         }
+		p_status.innerHTML = `Sending payload: ${buffer.byteLength} bytes`;
         logDebug(`Sending payload: ${buffer.byteLength} bytes`);
         await this._sendRawPayload(buffer, onProgress);
+		p_status.innerHTML = `Payload sent, waiting for response...`;
         logDebug("Payload sent, waiting for response...");
         await this._readResponse();
     }
@@ -8563,7 +8571,7 @@ class FastbootDevice {
         }
 		let p_status = document.querySelector('#status');
         let maxDlSize = await this._getDownloadSize();
-		console.log(`max download size: ${maxDlSize}`);
+		p_status.innerHTML = `Max download size: ${maxDlSize}`;
         let fileHeader = await readBlobAsBuffer(blob.slice(0, FILE_HEADER_SIZE));
         let totalBytes = blob.size;
         let isSparse = false;
@@ -8584,16 +8592,18 @@ class FastbootDevice {
             // to optimize extent allocation.
             await this.runCommand(`resize-logical-partition:${partition}:0`);
             // Set the actual size
+			p_status.innerHTML = `resize-logical-partition:${partition}:${totalBytes}`;
             await this.runCommand(`resize-logical-partition:${partition}:${totalBytes}`);
         }
+
         // Convert image to sparse (for splitting) if it exceeds the size limit
         if (blob.size > maxDlSize && !isSparse) {
 			p_status.innerHTML = `${partition} image is raw, converting to sparse`;
             logDebug(`${partition} image is raw, converting to sparse`);
             // Assume that non-sparse images will always be small enough to convert in RAM.
             // The buffer is converted to a Blob for compatibility with the existing flashing code.
-            let rawData = await readBlobAsBuffer(blob);
-            let sparse = fromRaw(rawData);
+            // let rawData = await readBlobAsBuffer(blob);
+            let sparse = fromRaw(blob);
 			rawData = null;
             blob = new Blob([sparse]);
         }
@@ -8601,15 +8611,15 @@ class FastbootDevice {
         logDebug(`Flashing ${blob.size} bytes to ${partition}, ${maxDlSize} bytes per split`);
         let splits = 0;
         let sentBytes = 0;
-        for await (let split of splitBlob(blob, maxDlSize)) {
-            await this.upload(partition, split.data, (progress) => {
-                onProgress((sentBytes + progress * split.bytes) / totalBytes);
-            });
-            logDebug("Flashing payload...");
-            await this.runCommand(`flash:${partition}`);
-            splits += 1;
-            sentBytes += split.bytes;
-        }
+		for await (let split of splitBlob(blob, maxDlSize)) {
+			await this.upload(partition, split.data, (progress) => {
+				onProgress((sentBytes + progress * split.bytes) / totalBytes);
+			});
+			logDebug("Flashing payload...");
+			await this.runCommand(`flash:${partition}`);
+			splits += 1;
+			sentBytes += split.bytes;
+		}
         logDebug(`Flashed ${partition} with ${splits} split(s)`);
     }
     /**
