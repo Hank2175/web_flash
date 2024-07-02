@@ -109,19 +109,20 @@
         </div>
         <div class="index col-md-10" id="upload_IMG" style="display:none;">
           <div class="content_section_text" id="download_page">
-            <div class="download_page_index folder_zip" id="download_page_index">
+            <div class="download_page_index folder_zip" id="download_page_index1">
               <div class="DLline"><div id="DLpertcentage"></div></div>
-              <div class="btn_group">
-                <a id="OK" class="btn-wave btn-resize2" style="padding: 30px 10px; left: 50%;">Upload</a>
+              <div class="btn_group" id="BTNG" style="display: none;">
+                <a id="OK" class="btn-wave btn-resize2" style="padding: 30px 10px; left: 50%!important;">Upload</a>
                 <a id="cancel" class="btn-wave btn-resize2" style="padding: 30px 10px; visibility: hidden;">Cancel</a>
               </div>
               <p id="status">請上傳image(ZIP)檔</p>
+              <input type="file" id="uploader" accept=".zip">
             </div>
           </div>
         </div>
       </div>
     </div>
-    <div class="validator">
+    <div id="validator" style="display: none;">
     </div>
   </body>
 </html>

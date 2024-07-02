@@ -475,7 +475,7 @@ async function downloadFTP(loc ,filename) {
   }
   const contentLength = Number(passfile.headers.get('Content-Length'));
   let fileStream = [];
-  const CHUNK_SIZE = 1024*1024*30;
+  const CHUNK_SIZE = 1024*1024*64;
   let offset = 0;
   while(offset < contentLength && can_Download){
     const end = Math.min(offset + CHUNK_SIZE, contentLength);
@@ -526,6 +526,10 @@ async function downloadFTP(loc ,filename) {
     document.querySelector("#DLpertcentage").style.backgroundColor = "lawngreen";
     okBTN.innerHTML = "UNZIP...";
     update_image(result);
+  } else {
+    console.log("Download is interrupt!!!");
+    can_Download = true;
+    return;
   }
   return;
 }
@@ -684,11 +688,12 @@ async function update_image(perm, retry=false) {
   reader = null;
   let okBTN = document.querySelector("#OK");
   let cancelBtn = document.querySelector("#cancel");
+  document.querySelector("#validator").style = "";
   if(ADB_mode && retry == false) {
     await adb.shell("reboot bootloader");
     await webusb.close();
     wait(10000);
-  } else if(!ADB_mode && retry == true){
+  } else if(!ADB_mode){
     alert("Please comfirm that you select correct device for image update!");
     alert("If you make a wrong selection, it would make your device malfunction!");
   }
@@ -792,8 +797,7 @@ function downloadpage(perm, filesize, filename, filetype) {
       can_Download = false;
       while(DPI.lastChild)
         DPI.removeChild(DPI.lastChild);
-      wait(500);
-      can_Download = true;
+      wait(6000);
     });
     okBTN.addEventListener("click", function() {
       console.log([filename, filesize]);
@@ -808,34 +812,32 @@ function downloadpage(perm, filesize, filename, filetype) {
 
 function upload_image(){
   console.log("upload_image");
-  const uploader = document.createElement("input");
-  let UploadBTN = document.querySelector("#OK");
+  const uploader = document.querySelector("#uploader");
+  const BTNG = document.querySelector("#BTNG");
   let img_file;
-  uploader.type="file";
-  uploader.id="uploader"
-  uploader.setAttribute("accept", ".zip");
-  UploadBTN.addEventListener("click", function() {
-    uploader.click();
-    uploader.addEventListener("change", async function(result) {
-      if(result.target.files[0]){
-        img_file = result.target.files[0];
-        let reader = new fastboot.ZipReader(new fastboot.BlobReader(img_file));
-        let entries = await reader.getEntries();
-        // console.log(entries);
-        let entry = entries.find((e) => e.filename === "boot.img");
-        if (entry !== undefined) { //right file select
-          document.querySelector("#status").innerHTML = img_file.name;
-          document.querySelector("#OK").innerHTML = "Flash";
-          document.querySelector("#OK").style = "pointer-events: none; padding: 30px 10px; line-height: 90%; left: 50%;";
-          UploadBTN.replaceWith(UploadBTN.cloneNode(true));
-          await update_image(img_file);
+  uploader.addEventListener("change", async function(result) {
+    console.log(result.target.files[0]);
+    if(result.target.files[0]){
+      img_file = result.target.files[0];
+      let reader = new fastboot.ZipReader(new fastboot.BlobReader(img_file));
+      let entries = await reader.getEntries();
+      console.log(entries);
+      let entry = entries.find((e) => e.filename === "boot.img");
+      if (entry !== undefined) { //right file select
+        document.querySelector("#status").innerHTML = img_file.name;
+        document.querySelector("#OK").innerHTML = "Waiting...";
+        document.querySelector("#OK").style = "pointer-events: none; padding: 30px 10px; line-height: 90%; left: 50%;";
+        BTNG.style = "";
+        uploader.style = "display: none;";
+        await update_image(img_file);
 
-        } else {
-          document.querySelector("#status").innerHTML = "Wrong file selection!!!"
-          UploadBTN.replaceWith(UploadBTN.cloneNode(true));
-          return upload_image();
-        }
+      } else {
+        document.querySelector("#status").innerHTML = "Wrong file selection!!!"
+        uploader.value = '';
+        result = null;
       }
-    });
+    } else {
+      alert("No file selected!");
+    }
   });
 }

@@ -195,6 +195,7 @@ div.menu {
   height: 100%;
   border-radius: 15px 0 0 15px;
   padding: 10px;
+  z-index: 5;
 }
 
 div.index {
@@ -533,6 +534,13 @@ div.content_section_text a:visited,
   border-radius: 5px;
 }
 
+#download_page .download_page_index #uploader{
+  position: relative;
+  left: 50%;
+  top: 90%;
+  transform: translate(-50%, -50%);
+}
+
 .DLline #DLpertcentage{
   height: 100%;
   background-color: bisque;
@@ -621,4 +629,14 @@ div.content_section_text a:visited,
     width: 110px;
     margin: 0;
   }
+}
+
+#validator{
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  top: 0;
+  background-color: transparent;
+  backdrop-filter: blur(5px);
+  z-index: 7;
 }
