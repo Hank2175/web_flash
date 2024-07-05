@@ -229,12 +229,12 @@ async function getDEVinfo() {
   shell = await adb.shell("getprop ro.product.model");
   wait(75);
   get = await shell.receive();
-  let modelName = Uint8toStr(get.data);
-  shell = await adb.shell("getprop ro.product.device");
-  wait(75);
-  get = await shell.receive();
   let deviceName = Uint8toStr(get.data);
   shell = await adb.shell("getprop ro.build.version.release");
+  wait(75);
+  get = await shell.receive();
+  let Bversion = Uint8toStr(get.data);
+  shell = await adb.shell("getprop ro.build.display.id");
   wait(75);
   get = await shell.receive();
   let versionName = Uint8toStr(get.data);
@@ -247,9 +247,10 @@ async function getDEVinfo() {
   get = await shell.receive();
   let build = Uint8toStr(get.data);//
   document.getElementById("name").innerHTML = proName;
-  document.getElementById("model").innerHTML = modelName;
+  // document.getElementById("model").innerHTML = modelName;
   document.getElementById("device").innerHTML = deviceName;
   document.getElementById("version").innerHTML = versionName;
+  document.getElementById("Bversion").innerHTML = Bversion;
   document.getElementById("finger").innerHTML = fingerprint;
   document.getElementById("build").innerHTML = build;
 }

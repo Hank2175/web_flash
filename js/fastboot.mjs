@@ -114,7 +114,7 @@ const MINOR_VERSION = 0;
 const FILE_HEADER_SIZE = 28;
 const CHUNK_HEADER_SIZE = 12;
 // AOSP libsparse uses 64 MiB chunks
-const RAW_CHUNK_SIZE = 64 * 1024 * 1024;//???
+const RAW_CHUNK_SIZE = 128 * 1024 * 1024;//???
 class ImageError extends Error {
     constructor(message) {
         super(message);
@@ -245,14 +245,6 @@ async function fromRaw(rawBuffer, partition) {
 	let sending;
     while (rawBuffer.size > 0) {
         let chunkSize = Math.min(rawBuffer.size, RAW_CHUNK_SIZE);
-		p_status.innerHTML = `Push ${chunkSize} into chunks ${chunks.length}`;
-        // chunks.push({
-        //     type: ChunkType.Raw,
-        //     blocks: chunkSize / header.blockSize,
-		// 	data: readBlobAsBuffer(rawBuffer.slice(0, chunkSize)),
-        //     // data: rawBuffer.slice(0, chunkSize),
-			
-        // });
 		if (rawBuffer.size >= chunkSize) {
 			sending = readBlobAsBuffer(rawBuffer.slice(0, chunkSize));
 		} else {
@@ -8176,7 +8168,7 @@ const BULK_TRANSFER_SIZE = 16384;
 const DEFAULT_DOWNLOAD_SIZE = 16 * 1024 * 1024; // 16 MiB
 // To conserve RAM and work around Chromium's ~2 GiB size limit, we limit the
 // max download size even if the bootloader can accept more data.
-const MAX_DOWNLOAD_SIZE = 64 * 1024 * 1024; // 64 MiB
+const MAX_DOWNLOAD_SIZE = 128 * 1024 * 1024; // 64 MiB
 const GETVAR_TIMEOUT = 10000; // ms
 /**
  * Exception class for USB errors not directly thrown by WebUSB.
