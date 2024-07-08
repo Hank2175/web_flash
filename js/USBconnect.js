@@ -109,7 +109,7 @@ async function connect(ADB_mode) {
         alert("確認能正常瀏覽後，就直接關掉該分頁！");
         window.open("https://10.88.25.179/ftp", "_blank")
         });
-      Flash_IMG("");
+      Flash_IMG(".");
     });
     document.querySelector("#upload_Flash").addEventListener("click", function() {
       buttonLink("upload_Flash", "upload_IMG");
@@ -142,7 +142,7 @@ async function connect(ADB_mode) {
         alert("確認能正常瀏覽後，就直接關掉該分頁！");
         window.open("https://10.88.25.179/ftp", "_blank")
         });
-      Flash_IMG("");
+      Flash_IMG(".");
     });
     document.querySelector("#upload_Flash").addEventListener("click", function() {
       buttonLink("upload_Flash", "upload_IMG");
@@ -342,7 +342,6 @@ function directDownload(){
 //Or ,key in image address directly.
 function fileBTN(fileSource, perm) {
   directDownload(); //directDownload block preparing!
-
   let insert = document.getElementById("Flash_IMG_index");
   let dir_link = document.getElementById("DIR_LINK");
   while(insert.firstChild) {
@@ -352,10 +351,10 @@ function fileBTN(fileSource, perm) {
     if(perm.indexOf('..') <= -1) {
       let a1 = document.createElement("a");
       a1.textContent = "/home";
+      while(dir_link.lastChild) {
+        dir_link.removeChild(dir_link.lastChild);
+      }
       a1.addEventListener("click", function() { 
-        while(dir_link.lastChild) {
-          dir_link.removeChild(dir_link.lastChild);
-        }
         perm = ".";
         dirP.clear();
         Flash_IMG(perm);
@@ -394,6 +393,7 @@ function fileBTN(fileSource, perm) {
     });
     insert.appendChild(div);
   }
+
   //file name sorting
   fileSource = fileSource.sort((a, b) => {
     if(a.name < b.name) {
@@ -424,7 +424,12 @@ function fileBTN(fileSource, perm) {
         insert.appendChild(div);
       }
     } else if (fileSource[key].type == "dir") {
-      if((dirP.peek() == "Project_Release" || dirP.peek() == "Dailybuild") && 
+      if(perm == "." && !dirP.peek() && 
+        fileSource[key].name.indexOf("Project_Release") == -1 &&
+        fileSource[key].name.indexOf("Dailybuild") == -1){
+        console.log(`By pass dir:"${fileSource[key].name}"`);
+      }
+      else if((dirP.peek() == "Project_Release" || dirP.peek() == "Dailybuild") && 
         fileSource[key].name.indexOf(check_proName) == -1 && 
         check_proName.indexOf("Android") == -1){
         console.log("Not correct project(" + fileSource[key].name + ")!");
